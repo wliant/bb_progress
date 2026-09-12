@@ -18,8 +18,11 @@ Baby development monitoring app for a single baby, personal use.
 - **Timezone**: use SGT (Asia/Singapore, UTC+8) by default everywhere — storage, display, and defaults.
 - **Deployment**: docker compose based development, single compose file. Externalize key properties (ports, credentials, instance names) into a `.env` file. Multiple instances of the compose stack must be able to run on the same machine — so no hardcoded ports, container names, volume names, or network names; derive them from `.env` (e.g. `COMPOSE_PROJECT_NAME` + port variables).
 - **Testing**: full test pyramid. Unit tests and integration tests live inside `app/` and `web/` respectively; e2e tests are a separate project.
+- **Spec-driven development**: write a spec before implementing a feature. Specs live in `specs/`, one file per feature (e.g. `specs/<feature-name>.md`), covering the requirements, behavior, and acceptance criteria. Implementation and tests follow the spec; if the design changes during implementation, update the spec to match.
 
 ## Development workflow
+
+Before starting a feature: write its spec in `specs/` and get it confirmed.
 
 After completing each feature:
 1. Ensure unit/integration tests are created for the feature.
