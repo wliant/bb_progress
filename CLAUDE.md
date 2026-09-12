@@ -130,6 +130,15 @@ check with `docker compose exec app ls -l /app/app.jar` if behaviour looks uncha
   is part of the ETag, or a cached full image would answer a thumbnail request.
 - Rows cascade with their owner in the database, but **stored objects never do** — every delete path
   must enumerate the media and remove the objects explicitly before the rows go.
+- **Voice can be recorded in-app** (`VoiceRecorder`, MediaRecorder API), producing a File that goes
+  through the same upload path. Recorders report types like `audio/webm;codecs=opus`, so
+  `MediaService.baseContentType` strips parameters before the kind lookup — without it the app
+  would refuse its own recordings. `getUserMedia` needs a secure context, so recording works on
+  https and localhost but **not over plain http on a LAN address**; the component detects that and
+  says so instead of offering a button that cannot work.
+- Headless Chromium on macOS cannot open an audio source at all (`NotReadableError`), even with
+  `--use-fake-device-for-media-stream`. The e2e recording spec therefore stubs only the browser's
+  capture via `addInitScript`; the File, upload, storage and playback stay real.
 - Integration tests run against **real MinIO**, not a mock. It is a singleton `GenericContainer` in
   `TestcontainersConfiguration` rather than a bean, because `PostgreSQLContainer` is also a
   `GenericContainer` and injecting one by type is ambiguous.

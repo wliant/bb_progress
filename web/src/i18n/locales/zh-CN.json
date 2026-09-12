@@ -173,6 +173,11 @@
       "PHOTO": "照片",
       "VIDEO": "视频",
       "AUDIO": "录音"
-    }
+    },
+    "record": "录音",
+    "recording": "录音中",
+    "stopRecording": "停止",
+    "recordUnavailable": "当前环境无法录音（需要 HTTPS 或 localhost）",
+    "microphoneDenied": "无法使用麦克风，请检查浏览器权限"
   }
 }

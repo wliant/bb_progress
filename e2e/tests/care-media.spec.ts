@@ -77,3 +77,66 @@ test('the profile photo keeps its original bytes', async ({ page, request }) => 
   expect(served.headers()['content-type']).toBe('image/png')
   expect((await served.body()).length).toBe(original.length)
 })
+
+/**
+ * Drives the in-app recorder end to end. Only the browser's audio capture is stubbed —
+ * headless Chromium on macOS cannot open an audio source at all (NotReadableError), even with
+ * the fake-device flags. Everything after the Blob is real: the File, the upload, the stored
+ * object and the playback element.
+ */
+test('a voice note recorded in the app is uploaded, stored and playable', async ({
+  page,
+  request,
+}) => {
+  await page.addInitScript(() => {
+    const track = { stop: () => {} }
+    const stream = { getTracks: () => [track] }
+    // navigator.mediaDevices is a read-only accessor; plain assignment silently does nothing.
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: async () => stream },
+    })
+
+    class StubRecorder {
+      static isTypeSupported = (type: string) => type === 'audio/webm;codecs=opus'
+      mimeType = 'audio/webm;codecs=opus'
+      ondataavailable: ((event: { data: Blob }) => void) | null = null
+      onstop: (() => void) | null = null
+      start() {}
+      stop() {
+        // ~40 KB of bytes so the upload is a genuine one.
+        const bytes = new Uint8Array(40_000).map((_, i) => i % 251)
+        this.ondataavailable?.({ data: new Blob([bytes], { type: 'audio/webm' }) })
+        this.onstop?.()
+      }
+    }
+    // @ts-expect-error replacing a browser API for the test
+    window.MediaRecorder = StubRecorder
+  })
+
+  await page.goto('/care')
+  await page.getByRole('button', { name: /睡觉/ }).click()
+  await page.locator('li', { hasText: '睡觉' }).first().click()
+
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: /录音/ }).click()
+  await expect(dialog.getByRole('status')).toContainText('录音中')
+
+  await dialog.getByRole('button', { name: '停止' }).click()
+  // Wait for the attachment itself, not the picker's "照片 / 视频 / 录音" label.
+  await expect(dialog.getByRole('button', { name: '移除' })).toHaveCount(1, { timeout: 20_000 })
+
+  // Stored as audio, with the codecs parameter stripped from the content type.
+  const logs = await (await request.get('/api/care-logs')).json()
+  const voice = logs[0].media.find((m: { kind: string }) => m.kind === 'AUDIO')
+  expect(voice).toBeTruthy()
+  expect(voice.contentType).toBe('audio/webm')
+  const served = await request.get(voice.url)
+  expect(served.ok()).toBe(true)
+  expect((await served.body()).length).toBe(40_000)
+
+  // And it plays from the media page.
+  await page.goto('/media')
+  await page.getByText('录音').first().click()
+  await expect(page.getByRole('dialog').locator('audio')).toHaveAttribute('controls', '')
+})

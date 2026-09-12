@@ -2,7 +2,7 @@
 
 Personal baby development monitoring app for a single baby. Bilingual (简体中文 / English, defaults to Chinese), Singapore Time everywhere.
 
-**Features**: baby profile (with photo, birth details and gestational age) · growth records with WHO percentile charts · CDC developmental milestone checklist (bilingual) · quick daily care logging (feeding / sleep / diaper) · photo, video and voice attachments on every entry and milestone · a media gallery across everything.
+**Features**: baby profile (with photo, birth details and gestational age) · growth records with WHO percentile charts · CDC developmental milestone checklist (bilingual) · quick daily care logging (feeding / sleep / diaper) · photo, video and voice attachments on every entry and milestone (voice can be recorded in the app) · a media gallery across everything.
 
 ## Stack
 
@@ -60,7 +60,12 @@ overrides the `name:` in each compose file, which would merge the two stacks bac
 
 Photos, videos and voice notes live in S3-compatible object storage; the database holds only the
 object key. Photos are re-encoded to under 1 MB on upload; video and voice are stored exactly as
-recorded, because the app has no transcoder — which also means only photos get thumbnails. The
+recorded, because the app has no transcoder — which also means only photos get thumbnails.
+
+Voice notes can be recorded directly in the app. Browsers only expose the microphone in a secure
+context, so recording works when the app is opened on `localhost` or over https; reached over plain
+http on a LAN address (for example from a phone at `http://192.168.x.x:8090`) the recorder explains
+that instead of offering a button that cannot work. Picking an existing audio file works anywhere. The
 compose stack runs **MinIO**, so it needs no AWS account and works offline, and each instance gets
 its own bucket and volume.
 

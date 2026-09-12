@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Media, MediaKind } from '../../api/types'
+import { VoiceRecorder } from './VoiceRecorder'
 
 export const KIND_ICON: Record<MediaKind, string> = {
   PHOTO: '🖼️',
@@ -94,14 +95,18 @@ export function MediaPicker({ media, onAdd, onRemove, pending = [], onRemovePend
         onChange={onChange}
         data-testid="media-input"
       />
-      <button
-        type="button"
-        onClick={() => input.current?.click()}
-        disabled={busy}
-        className="text-sm font-medium text-rose-600 hover:underline disabled:opacity-50"
-      >
-        {busy ? t('media.uploading') : t('media.add')}
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => input.current?.click()}
+          disabled={busy}
+          className="text-sm font-medium text-rose-600 hover:underline disabled:opacity-50"
+        >
+          {busy ? t('media.uploading') : t('media.add')}
+        </button>
+        {/* A voice note can be recorded here rather than picked from a file. */}
+        <VoiceRecorder onRecorded={(file) => onAdd([file])} />
+      </div>
       <p className="mt-1 text-xs text-slate-400">{t('media.hint')}</p>
       {pending.length > 0 && (
         <p className="mt-1 text-xs text-slate-400">{t('media.pending', { count: pending.length })}</p>

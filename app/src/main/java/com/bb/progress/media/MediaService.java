@@ -139,7 +139,9 @@ public class MediaService {
     }
 
     private Stored store(MultipartFile file) {
-        String contentType = file.getContentType();
+        // Recorders report types like "audio/webm;codecs=opus"; the parameters are not part
+        // of the media type we key on.
+        String contentType = baseContentType(file.getContentType());
         MediaKind kind = contentType == null ? null : KIND_BY_TYPE.get(contentType);
         if (kind == null) {
             throw ApiException.badRequest("UNSUPPORTED_MEDIA_TYPE",
@@ -156,6 +158,15 @@ public class MediaService {
         }
         return new Stored(kind, storage.storeAs("media", file, EXTENSION_BY_TYPE.get(contentType)),
                 contentType);
+    }
+
+    static String baseContentType(String contentType) {
+        if (contentType == null) {
+            return null;
+        }
+        int parameters = contentType.indexOf(';');
+        return (parameters < 0 ? contentType : contentType.substring(0, parameters))
+                .trim().toLowerCase();
     }
 
     private static int nextSortOrder(List<Media> existing) {

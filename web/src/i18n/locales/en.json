@@ -173,6 +173,11 @@
       "PHOTO": "Photo",
       "VIDEO": "Video",
       "AUDIO": "Voice"
-    }
+    },
+    "record": "Record",
+    "recording": "Recording",
+    "stopRecording": "Stop",
+    "recordUnavailable": "Recording needs HTTPS or localhost",
+    "microphoneDenied": "Couldn't use the microphone — check the browser permission"
   }
 }
