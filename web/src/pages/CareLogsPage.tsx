@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCareLogs } from '../api/hooks'
 import { QuickCareButtons } from '../components/QuickCareButtons'
@@ -15,7 +16,9 @@ export function CareLogsPage() {
 
 function CareLogsContent() {
   const { t } = useTranslation()
-  const [date, setDate] = useState(todaySgt())
+  // ?date= lets the photo gallery link straight to the day an entry belongs to.
+  const [searchParams] = useSearchParams()
+  const [date, setDate] = useState(searchParams.get('date') ?? todaySgt())
   const { data: logs = [], isLoading, isError, error, refetch } = useCareLogs(date)
   const [editingId, setEditingId] = useState<string | null>(null)
 

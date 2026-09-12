@@ -7,7 +7,8 @@
     "profile": "Profile",
     "growth": "Growth",
     "milestones": "Milestones",
-    "care": "Care"
+    "care": "Care",
+    "photos": "Photos"
   },
   "common": {
     "save": "Save",
@@ -159,5 +160,14 @@
     "source": "Reference: {{standard}} (Villar et al., Lancet 2014)",
     "disclaimer": "Shows position on the reference population only — not a clinical assessment. Discuss with your paediatrician.",
     "outOfRange": "This gestational age (under 33 weeks) is outside the standard bundled here. INTERGROWTH-21st publishes a separate Very Preterm standard, which this app does not include."
+  },
+  "photos": {
+    "title": "Photos",
+    "count": "{{count}} photos",
+    "profilePhoto": "Profile photo",
+    "empty": "No photos yet",
+    "emptyHint": "Photos added to a care entry or a milestone show up here automatically.",
+    "openEntry": "Open entry",
+    "noDate": "No date"
   }
 }

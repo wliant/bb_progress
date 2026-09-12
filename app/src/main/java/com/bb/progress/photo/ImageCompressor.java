@@ -31,11 +31,16 @@ public class ImageCompressor {
     private static final float[] QUALITIES = {0.85f, 0.72f, 0.6f, 0.5f};
 
     public byte[] compress(byte[] source, long maxBytes) {
+        return compress(source, maxBytes, MAX_EDGES[0]);
+    }
+
+    /** As {@link #compress(byte[], long)} but never wider or taller than {@code startingMaxEdge}. */
+    public byte[] compress(byte[] source, long maxBytes, int startingMaxEdge) {
         BufferedImage image = decode(source);
         image = ExifOrientation.apply(image, ExifOrientation.read(source));
 
         byte[] smallest = null;
-        for (int maxEdge : MAX_EDGES) {
+        for (int maxEdge : edgesFrom(startingMaxEdge)) {
             BufferedImage scaled = scaleToFit(image, maxEdge);
             for (float quality : QUALITIES) {
                 byte[] encoded = encodeJpeg(scaled, quality);
@@ -49,6 +54,18 @@ public class ImageCompressor {
         }
         // Every attempt overshot (pathological input); keep the smallest rather than failing.
         return smallest;
+    }
+
+    private static int[] edgesFrom(int startingMaxEdge) {
+        int[] capped = new int[MAX_EDGES.length + 1];
+        capped[0] = startingMaxEdge;
+        int count = 1;
+        for (int edge : MAX_EDGES) {
+            if (edge < startingMaxEdge) {
+                capped[count++] = edge;
+            }
+        }
+        return java.util.Arrays.copyOf(capped, count);
     }
 
     private BufferedImage decode(byte[] source) {

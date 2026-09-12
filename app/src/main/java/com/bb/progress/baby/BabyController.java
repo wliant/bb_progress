@@ -56,7 +56,8 @@ public class BabyController {
     }
 
     @GetMapping("/photo")
-    public ResponseEntity<Resource> photo(WebRequest request) {
-        return PhotoResponses.serve(photoStorage, service.getPhotoPath(), request);
+    public ResponseEntity<Resource> photo(
+            @RequestParam(required = false) String size, WebRequest request) {
+        return PhotoResponses.serve(photoStorage, service.getPhotoPath(), size, request);
     }
 }

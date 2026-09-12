@@ -13,6 +13,7 @@ import type {
   MilestoneAchievement,
   MilestoneAgeGroup,
   NewbornAssessment,
+  GalleryPhoto,
 } from './types'
 
 export function useBaby() {
@@ -46,7 +47,10 @@ export function useUploadBabyPhoto() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (file: File) => apiUpload<Baby>('/api/baby/photo', file),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['baby'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['baby'] })
+      queryClient.invalidateQueries({ queryKey: ['photos'] })
+    },
   })
 }
 
@@ -125,7 +129,10 @@ export function useRemoveMilestoneAchievement() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => apiSend('DELETE', `/api/milestones/${id}/achievement`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['milestones'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['milestones'] })
+      queryClient.invalidateQueries({ queryKey: ['photos'] })
+    },
   })
 }
 
@@ -134,7 +141,17 @@ export function useUploadMilestonePhoto() {
   return useMutation({
     mutationFn: ({ id, file }: { id: string; file: File }) =>
       apiUpload<MilestoneAchievement>(`/api/milestones/${id}/achievement/photo`, file),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['milestones'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['milestones'] })
+      queryClient.invalidateQueries({ queryKey: ['photos'] })
+    },
+  })
+}
+
+export function usePhotos() {
+  return useQuery<GalleryPhoto[]>({
+    queryKey: ['photos'],
+    queryFn: () => apiGet('/api/photos'),
   })
 }
 
@@ -167,7 +184,10 @@ export function useDeleteCareLog() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => apiSend('DELETE', `/api/care-logs/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['care-logs'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['care-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['photos'] })
+    },
   })
 }
 
@@ -176,7 +196,10 @@ export function useUploadCareLogPhoto() {
   return useMutation({
     mutationFn: ({ id, file }: { id: string; file: File }) =>
       apiUpload<CareLog>(`/api/care-logs/${id}/photo`, file),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['care-logs'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['care-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['photos'] })
+    },
   })
 }
 
@@ -184,6 +207,9 @@ export function useRemoveCareLogPhoto() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => apiSend<CareLog>('DELETE', `/api/care-logs/${id}/photo`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['care-logs'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['care-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['photos'] })
+    },
   })
 }

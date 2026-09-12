@@ -110,3 +110,19 @@ export interface NewbornAssessment {
   covered: boolean
   assessments: NewbornAssessmentItem[]
 }
+
+export type PhotoSource = 'PROFILE' | 'MILESTONE' | 'CARE_LOG'
+
+export interface GalleryPhoto {
+  id: string
+  source: PhotoSource
+  url: string
+  thumbnailUrl: string
+  /** Null for the profile photo, which has no date of its own. */
+  takenOn: string | null
+  takenAt: string | null
+  careType: CareType | null
+  titleEn: string | null
+  titleZh: string | null
+  note: string | null
+}

@@ -14,23 +14,35 @@ import org.springframework.web.context.request.WebRequest;
  */
 public final class PhotoResponses {
 
+    /** Value of the {@code size} query parameter that asks for a grid-sized copy. */
+    public static final String THUMBNAIL = "thumb";
+
     private PhotoResponses() {
     }
 
     public static ResponseEntity<Resource> serve(PhotoStorageService storage, String relativePath,
             WebRequest request) {
-        String etag = "\"" + versionOf(relativePath) + "\"";
+        return serve(storage, relativePath, null, request);
+    }
+
+    public static ResponseEntity<Resource> serve(PhotoStorageService storage, String relativePath,
+            String size, WebRequest request) {
+        boolean thumbnail = THUMBNAIL.equals(size);
+        // The size is part of the identity, or a cached full image would answer a thumbnail request.
+        String etag = "\"" + versionOf(relativePath) + (thumbnail ? "-thumb" : "") + "\"";
         if (request.checkNotModified(etag)) {
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
                     .eTag(etag)
                     .cacheControl(CacheControl.noCache())
                     .build();
         }
+        String contentType = thumbnail ? storage.thumbnailContentType() : storage.contentTypeOf(relativePath);
+        Resource body = thumbnail ? storage.loadThumbnail(relativePath) : storage.load(relativePath);
         return ResponseEntity.ok()
                 .eTag(etag)
                 .cacheControl(CacheControl.noCache())
-                .contentType(MediaType.parseMediaType(storage.contentTypeOf(relativePath)))
-                .body(storage.load(relativePath));
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(body);
     }
 
     /** Opaque per-upload version the frontend appends to image URLs to bust its in-memory cache. */

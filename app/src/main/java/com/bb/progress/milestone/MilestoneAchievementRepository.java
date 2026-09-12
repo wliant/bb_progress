@@ -1,6 +1,7 @@
 package com.bb.progress.milestone;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +14,8 @@ public interface MilestoneAchievementRepository extends JpaRepository<MilestoneA
     Optional<MilestoneAchievement> findByMilestoneId(String milestoneId);
 
     Optional<MilestoneAchievement> findFirstByOrderByAchievedOnAsc();
+
+    List<MilestoneAchievement> findAllByPhotoPathIsNotNull();
 
     /**
      * Race-safe check-off: two taps on "mark achieved" both settle on the same end state

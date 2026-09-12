@@ -667,6 +667,110 @@ class ApiIntegrationTest {
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
+    /** The gallery is a view over the other features' photos, newest first. */
+    @Test
+    @Order(23)
+    void photoGalleryCollectsEveryPhotoWithItsContext() throws Exception {
+        mockMvc.perform(delete("/api/baby")).andExpect(status().isNoContent());
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"小宝\",\"dateOfBirth\":\"2026-01-15\",\"gender\":\"FEMALE\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/photos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
+
+        // A care-log photo.
+        MvcResult log = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"loggedAt\":\"2026-05-10T09:30:00+08:00\",\"note\":\"150ml\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String logId = com.jayway.jsonpath.JsonPath.read(log.getResponse().getContentAsString(), "$.id");
+        mockMvc.perform(multipart("/api/care-logs/" + logId + "/photo")
+                        .file(new MockMultipartFile("file", "a.jpg", "image/jpeg", tinyJpeg()))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isOk());
+
+        // A milestone photo, achieved on a later date so it sorts first.
+        mockMvc.perform(put("/api/milestones/2m-social-smiles/achievement")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"achievedOn\":\"2026-06-01\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/milestones/2m-social-smiles/achievement/photo")
+                        .file(new MockMultipartFile("file", "b.jpg", "image/jpeg", tinyJpeg()))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isOk());
+
+        // And the profile photo, which has no date and therefore leads.
+        mockMvc.perform(multipart("/api/baby/photo")
+                        .file(new MockMultipartFile("file", "me.jpg", "image/jpeg", tinyJpeg()))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/photos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(3)))
+                .andExpect(jsonPath("$[0].source").value("PROFILE"))
+                .andExpect(jsonPath("$[0].takenOn").doesNotExist())
+                .andExpect(jsonPath("$[1].source").value("MILESTONE"))
+                .andExpect(jsonPath("$[1].takenOn").value("2026-06-01"))
+                .andExpect(jsonPath("$[1].titleZh").value("你对宝宝说话或微笑时会报以微笑"))
+                .andExpect(jsonPath("$[1].titleEn").isNotEmpty())
+                .andExpect(jsonPath("$[2].source").value("CARE_LOG"))
+                .andExpect(jsonPath("$[2].takenOn").value("2026-05-10"))
+                .andExpect(jsonPath("$[2].careType").value("FEEDING"))
+                .andExpect(jsonPath("$[2].note").value("150ml"))
+                .andExpect(jsonPath("$[2].thumbnailUrl",
+                        org.hamcrest.Matchers.containsString("size=thumb")));
+
+        // Removing a photo removes it from the gallery.
+        mockMvc.perform(delete("/api/care-logs/" + logId + "/photo")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/photos"))
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(2)));
+    }
+
+    @Test
+    @Order(24)
+    void thumbnailsAreSmallerThanTheOriginalAndCachedSeparately() throws Exception {
+        byte[] photo = largeNoisyPng(1600, 1200);
+        MvcResult created = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SLEEP\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+        mockMvc.perform(multipart("/api/care-logs/" + id + "/photo")
+                        .file(new MockMultipartFile("file", "big.png", "image/png", photo))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isOk());
+
+        byte[] full = mockMvc.perform(get("/api/care-logs/" + id + "/photo"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsByteArray();
+
+        MvcResult thumbResult = mockMvc.perform(get("/api/care-logs/" + id + "/photo?size=thumb"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "image/jpeg"))
+                .andReturn();
+        byte[] thumb = thumbResult.getResponse().getContentAsByteArray();
+
+        assertThat(thumb.length).isLessThan(full.length);
+        assertThat(thumb.length).isLessThanOrEqualTo(120_000);
+
+        // A thumbnail must not be served from the full image's cache entry, and vice versa.
+        String thumbEtag = thumbResult.getResponse().getHeader("ETag");
+        mockMvc.perform(get("/api/care-logs/" + id + "/photo?size=thumb").header("If-None-Match", thumbEtag))
+                .andExpect(status().isNotModified());
+        mockMvc.perform(get("/api/care-logs/" + id + "/photo").header("If-None-Match", thumbEtag))
+                .andExpect(status().isOk());
+
+        // Deleting the entry takes the cached thumbnail with it.
+        mockMvc.perform(delete("/api/care-logs/" + id)).andExpect(status().isNoContent());
+        assertThat(countStoredPhotos("care-logs")).isZero();
+    }
+
     private static byte[] largeNoisyPng(int width, int height) throws Exception {
         java.awt.image.BufferedImage image =
                 new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);

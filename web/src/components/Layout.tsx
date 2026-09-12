@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/growth', key: 'nav.growth', icon: '📈' },
   { to: '/milestones', key: 'nav.milestones', icon: '🏆' },
   { to: '/care', key: 'nav.care', icon: '🍼' },
+  { to: '/photos', key: 'nav.photos', icon: '📷' },
   { to: '/profile', key: 'nav.profile', icon: '👶' },
 ] as const
 
@@ -20,7 +21,7 @@ export function Layout() {
     }`
 
   const tabClass = ({ isActive }: { isActive: boolean }) =>
-    `flex flex-1 flex-col items-center gap-0.5 py-2 text-xs ${
+    `flex min-w-0 flex-1 flex-col items-center gap-0.5 px-0.5 py-2 text-[11px] leading-tight ${
       isActive ? 'text-rose-600 font-semibold' : 'text-slate-500'
     }`
 

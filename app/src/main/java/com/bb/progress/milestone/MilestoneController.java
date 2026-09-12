@@ -59,7 +59,8 @@ public class MilestoneController {
     }
 
     @GetMapping("/{definitionId}/achievement/photo")
-    public ResponseEntity<Resource> photo(@PathVariable String definitionId, WebRequest request) {
-        return PhotoResponses.serve(photoStorage, service.getPhotoPath(definitionId), request);
+    public ResponseEntity<Resource> photo(@PathVariable String definitionId,
+            @RequestParam(required = false) String size, WebRequest request) {
+        return PhotoResponses.serve(photoStorage, service.getPhotoPath(definitionId), size, request);
     }
 }

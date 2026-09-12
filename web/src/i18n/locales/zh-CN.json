@@ -7,7 +7,8 @@
     "profile": "宝宝档案",
     "growth": "生长曲线",
     "milestones": "里程碑",
-    "care": "日常护理"
+    "care": "日常护理",
+    "photos": "照片"
   },
   "common": {
     "save": "保存",
@@ -159,5 +160,14 @@
     "source": "参考标准：{{standard}}（Villar 等，Lancet 2014）",
     "disclaimer": "仅显示在参考人群中的位置，不作临床判断。请与儿科医生讨论。",
     "outOfRange": "该孕周（<33 周）不在本应用内置的标准范围内。INTERGROWTH-21st 另有极早产儿标准，本应用未收录。"
+  },
+  "photos": {
+    "title": "照片",
+    "count": "共 {{count}} 张",
+    "profilePhoto": "档案照片",
+    "empty": "还没有照片",
+    "emptyHint": "在日常护理记录或里程碑中添加照片后，会自动出现在这里。",
+    "openEntry": "查看原记录",
+    "noDate": "没有日期"
   }
 }

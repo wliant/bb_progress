@@ -2,7 +2,7 @@
 
 Personal baby development monitoring app for a single baby. Bilingual (简体中文 / English, defaults to Chinese), Singapore Time everywhere.
 
-**Features**: baby profile (with photo, birth details and gestational age) · growth records with WHO percentile charts · CDC developmental milestone checklist (bilingual) · quick daily care logging (feeding / sleep / diaper).
+**Features**: baby profile (with photo, birth details and gestational age) · growth records with WHO percentile charts · CDC developmental milestone checklist (bilingual) · quick daily care logging (feeding / sleep / diaper, with photos) · a photo gallery across everything.
 
 ## Stack
 

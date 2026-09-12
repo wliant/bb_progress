@@ -23,6 +23,9 @@ public class PhotoStorageService {
             "image/png", "png",
             "image/webp", "webp");
 
+    private static final int THUMBNAIL_MAX_EDGE = 320;
+    private static final long THUMBNAIL_MAX_BYTES = 120_000L;
+
     private final Path baseDir;
     private final ImageCompressor compressor;
 
@@ -86,11 +89,48 @@ public class PhotoStorageService {
         return relativePath;
     }
 
+    /**
+     * A reduced copy for grid tiles, generated on first request and cached beside the original so
+     * a gallery does not pull a megabyte per tile.
+     */
+    public Resource loadThumbnail(String relativePath) {
+        Path original = resolve(relativePath);
+        Path thumbnail = original.resolveSibling(thumbnailName(relativePath));
+        if (!Files.exists(thumbnail)) {
+            try {
+                byte[] source = Files.readAllBytes(original);
+                Files.write(thumbnail, compressor.compress(source, THUMBNAIL_MAX_BYTES, THUMBNAIL_MAX_EDGE));
+            } catch (IOException e) {
+                throw new UncheckedIOException("Failed to create thumbnail", e);
+            }
+        }
+        return toResource(thumbnail);
+    }
+
+    private static String thumbnailName(String relativePath) {
+        String fileName = relativePath.substring(relativePath.lastIndexOf('/') + 1);
+        int dot = fileName.lastIndexOf('.');
+        return (dot < 0 ? fileName : fileName.substring(0, dot)) + "_thumb.jpg";
+    }
+
+    /** Thumbnails are always JPEG regardless of the original's type. */
+    public String thumbnailContentType() {
+        return "image/jpeg";
+    }
+
     public Resource load(String relativePath) {
+        return toResource(resolve(relativePath));
+    }
+
+    private Path resolve(String relativePath) {
         Path path = baseDir.resolve(relativePath).normalize();
         if (!path.startsWith(baseDir.normalize()) || !Files.exists(path)) {
             throw ApiException.notFound("PHOTO_NOT_FOUND", "Photo not found");
         }
+        return path;
+    }
+
+    private Resource toResource(Path path) {
         try {
             return new UrlResource(path.toUri());
         } catch (IOException e) {
@@ -115,6 +155,8 @@ public class PhotoStorageService {
         }
         try {
             Files.deleteIfExists(baseDir.resolve(relativePath));
+            // The cached thumbnail must go with it, or a stale tile outlives the photo.
+            Files.deleteIfExists(baseDir.resolve(relativePath).resolveSibling(thumbnailName(relativePath)));
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to delete photo", e);
         }

@@ -92,6 +92,45 @@ export function apiError(status: number, code: string) {
   return HttpResponse.json({ status, code, message: code }, { status })
 }
 
+export const testPhotos = [
+  {
+    id: 'profile',
+    source: 'PROFILE' as const,
+    url: '/api/baby/photo?v=p1',
+    thumbnailUrl: '/api/baby/photo?size=thumb&v=p1',
+    takenOn: null,
+    takenAt: null,
+    careType: null,
+    titleEn: null,
+    titleZh: null,
+    note: null,
+  },
+  {
+    id: 'milestone:2m-social-smiles',
+    source: 'MILESTONE' as const,
+    url: '/api/milestones/2m-social-smiles/achievement/photo?v=m1',
+    thumbnailUrl: '/api/milestones/2m-social-smiles/achievement/photo?size=thumb&v=m1',
+    takenOn: '2026-06-01',
+    takenAt: null,
+    careType: null,
+    titleEn: 'Smiles when you talk to or smile at them',
+    titleZh: '你对宝宝说话或微笑时会报以微笑',
+    note: null,
+  },
+  {
+    id: 'care-log:c1',
+    source: 'CARE_LOG' as const,
+    url: '/api/care-logs/c1/photo?v=c1',
+    thumbnailUrl: '/api/care-logs/c1/photo?size=thumb&v=c1',
+    takenOn: '2026-05-10',
+    takenAt: '2026-05-10T09:30:00+08:00',
+    careType: 'FEEDING' as const,
+    titleEn: null,
+    titleZh: null,
+    note: '150ml',
+  },
+]
+
 export const handlers = [
   http.get('/api/baby', () => HttpResponse.json(testBaby)),
   http.get('/api/growth-records', () => HttpResponse.json(testGrowthRecords)),
@@ -99,6 +138,7 @@ export const handlers = [
   http.get('/api/milestones', () => HttpResponse.json(testMilestones)),
   http.get('/api/newborn-assessment', () => HttpResponse.json(testNewbornAssessment)),
   http.get('/api/care-logs', () => HttpResponse.json(testCareLogs)),
+  http.get('/api/photos', () => HttpResponse.json(testPhotos)),
 ]
 
 export const server = setupServer(...handlers)

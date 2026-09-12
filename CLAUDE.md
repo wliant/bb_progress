@@ -103,3 +103,9 @@ check with `docker compose exec app ls -l /app/app.jar` if behaviour looks uncha
   and milestone photos go through `PhotoStorageService.storeCompressed` (re-encoded to JPEG
   ≤1 MB, EXIF orientation applied); the **profile photo alone** uses `store` and keeps the
   original bytes. Tests that upload must use real image bytes — the compressor decodes them.
+  `?size=thumb` on any photo endpoint serves a ≤320 px copy, generated on first request and cached
+  beside the original (and deleted with it). The size is part of the ETag, or a cached full image
+  would answer a thumbnail request.
+- **The photo gallery owns no data**: `/api/photos` is a read-only view over care-log, milestone and
+  profile photos. Adding or removing a photo happens on its own entry, so any mutation that touches
+  a photo must also invalidate the `['photos']` query.

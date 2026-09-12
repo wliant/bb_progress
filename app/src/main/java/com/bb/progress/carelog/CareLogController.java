@@ -74,7 +74,8 @@ public class CareLogController {
     }
 
     @GetMapping("/{id}/photo")
-    public ResponseEntity<Resource> photo(@PathVariable UUID id, WebRequest request) {
-        return PhotoResponses.serve(photoStorage, service.getPhotoPath(id), request);
+    public ResponseEntity<Resource> photo(@PathVariable UUID id,
+            @RequestParam(required = false) String size, WebRequest request) {
+        return PhotoResponses.serve(photoStorage, service.getPhotoPath(id), size, request);
     }
 }
