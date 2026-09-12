@@ -66,7 +66,7 @@ export const testMilestones: MilestoneAgeGroup[] = [
         category: 'MOTOR',
         titleEn: 'Holds head up when on tummy',
         titleZh: '趴着时能抬头',
-        achievement: { achievedOn: '2026-03-01', note: null, hasPhoto: false, photoVersion: null },
+        achievement: { achievedOn: '2026-03-01', note: null, media: [] },
       },
     ],
   },
@@ -84,7 +84,7 @@ export const testNewbornAssessment = {
 }
 
 export const testCareLogs: CareLog[] = [
-  { id: 'c1', type: 'FEEDING', loggedAt: '2026-05-10T09:30:00+08:00', note: '150ml', hasPhoto: false, photoVersion: null },
+  { id: 'c1', type: 'FEEDING', loggedAt: '2026-05-10T09:30:00+08:00', note: '150ml', media: [] },
 ]
 
 /** Mirrors the backend's error contract: every failure carries a stable `code`. */
@@ -92,10 +92,11 @@ export function apiError(status: number, code: string) {
   return HttpResponse.json({ status, code, message: code }, { status })
 }
 
-export const testPhotos = [
+export const testMedia = [
   {
     id: 'profile',
     source: 'PROFILE' as const,
+    kind: 'PHOTO' as const,
     url: '/api/baby/photo?v=p1',
     thumbnailUrl: '/api/baby/photo?size=thumb&v=p1',
     takenOn: null,
@@ -106,10 +107,11 @@ export const testPhotos = [
     note: null,
   },
   {
-    id: 'milestone:2m-social-smiles',
+    id: 'media:m1',
     source: 'MILESTONE' as const,
-    url: '/api/milestones/2m-social-smiles/achievement/photo?v=m1',
-    thumbnailUrl: '/api/milestones/2m-social-smiles/achievement/photo?size=thumb&v=m1',
+    kind: 'PHOTO' as const,
+    url: '/api/media/m1/content',
+    thumbnailUrl: '/api/media/m1/content?size=thumb',
     takenOn: '2026-06-01',
     takenAt: null,
     careType: null,
@@ -118,16 +120,30 @@ export const testPhotos = [
     note: null,
   },
   {
-    id: 'care-log:c1',
+    id: 'media:c1',
     source: 'CARE_LOG' as const,
-    url: '/api/care-logs/c1/photo?v=c1',
-    thumbnailUrl: '/api/care-logs/c1/photo?size=thumb&v=c1',
+    kind: 'PHOTO' as const,
+    url: '/api/media/c1/content',
+    thumbnailUrl: '/api/media/c1/content?size=thumb',
     takenOn: '2026-05-10',
     takenAt: '2026-05-10T09:30:00+08:00',
     careType: 'FEEDING' as const,
     titleEn: null,
     titleZh: null,
     note: '150ml',
+  },
+  {
+    id: 'media:v1',
+    source: 'CARE_LOG' as const,
+    kind: 'VIDEO' as const,
+    url: '/api/media/v1/content',
+    thumbnailUrl: null,
+    takenOn: '2026-05-10',
+    takenAt: '2026-05-10T09:29:00+08:00',
+    careType: 'FEEDING' as const,
+    titleEn: null,
+    titleZh: null,
+    note: '翻身',
   },
 ]
 
@@ -138,7 +154,7 @@ export const handlers = [
   http.get('/api/milestones', () => HttpResponse.json(testMilestones)),
   http.get('/api/newborn-assessment', () => HttpResponse.json(testNewbornAssessment)),
   http.get('/api/care-logs', () => HttpResponse.json(testCareLogs)),
-  http.get('/api/photos', () => HttpResponse.json(testPhotos)),
+  http.get('/api/media', () => HttpResponse.json(testMedia)),
 ]
 
 export const server = setupServer(...handlers)

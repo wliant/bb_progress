@@ -1,12 +1,13 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  useAddCareLogMedia,
   useDeleteCareLog,
-  useRemoveCareLogPhoto,
+  useDeleteMedia,
   useUpdateCareLog,
-  useUploadCareLogPhoto,
 } from '../../api/hooks'
 import type { CareLog } from '../../api/types'
+import { MediaPicker } from '../media/MediaPicker'
 import { CARE_ICONS } from './CareLogList'
 
 /** The dialog reads its entry from the list so an upload shows up without reopening. */
@@ -14,9 +15,8 @@ export function CareLogEditDialog({ log, onClose }: { log: CareLog; onClose: () 
   const { t } = useTranslation()
   const updateLog = useUpdateCareLog()
   const deleteLog = useDeleteCareLog()
-  const uploadPhoto = useUploadCareLogPhoto()
-  const removePhoto = useRemoveCareLogPhoto()
-  const fileInput = useRef<HTMLInputElement>(null)
+  const addMedia = useAddCareLogMedia()
+  const removeMedia = useDeleteMedia()
 
   // The API serializes loggedAt in SGT (+08:00); take the local part for the input.
   const [time, setTime] = useState(log.loggedAt.slice(0, 16))
@@ -31,12 +31,6 @@ export function CareLogEditDialog({ log, onClose }: { log: CareLog; onClose: () 
 
   function remove() {
     deleteLog.mutate(log.id, { onSuccess: onClose })
-  }
-
-  function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) uploadPhoto.mutate({ id: log.id, file })
-    e.target.value = ''
   }
 
   const busy = updateLog.isPending || deleteLog.isPending
@@ -79,47 +73,13 @@ export function CareLogEditDialog({ log, onClose }: { log: CareLog; onClose: () 
         </label>
 
         <div className="mb-4">
-          <p className="mb-2 text-sm font-medium text-slate-700">{t('care.photo')}</p>
-          {log.hasPhoto && (
-            <img
-              src={`/api/care-logs/${log.id}/photo?v=${log.photoVersion}`}
-              alt=""
-              className="mb-2 max-h-56 w-full rounded-lg object-cover"
-            />
-          )}
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={onPhotoChange}
-            data-testid="care-photo-input"
+          {/* The entry already exists, so attachments upload straight away. */}
+          <MediaPicker
+            media={log.media}
+            onAdd={(files) => addMedia.mutate({ id: log.id, files })}
+            onRemove={(mediaId) => removeMedia.mutate(mediaId)}
+            busy={addMedia.isPending}
           />
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => fileInput.current?.click()}
-              disabled={uploadPhoto.isPending}
-              className="text-sm font-medium text-rose-600 hover:underline disabled:opacity-50"
-            >
-              {uploadPhoto.isPending
-                ? t('care.uploading')
-                : log.hasPhoto
-                  ? t('care.replacePhoto')
-                  : t('care.addPhoto')}
-            </button>
-            {log.hasPhoto && (
-              <button
-                type="button"
-                onClick={() => removePhoto.mutate(log.id)}
-                disabled={removePhoto.isPending}
-                className="text-sm text-slate-400 hover:text-red-600 disabled:opacity-50"
-              >
-                {t('care.removePhoto')}
-              </button>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-slate-400">{t('care.photoHint')}</p>
         </div>
 
         <div className="flex gap-3">

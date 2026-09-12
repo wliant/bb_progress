@@ -8,7 +8,7 @@
     "growth": "生长曲线",
     "milestones": "里程碑",
     "care": "日常护理",
-    "photos": "照片"
+    "media": "媒体"
   },
   "common": {
     "save": "保存",
@@ -53,7 +53,9 @@
     "UNKNOWN": "出错了，请重试",
     "IMAGE_UNREADABLE": "无法读取这张图片，请换一张 JPEG 或 PNG",
     "GESTATIONAL_AGE_NOT_SET": "还没有填写出生孕周",
-    "BIRTH_MEASUREMENTS_NOT_SET": "还没有填写出生时的测量值"
+    "BIRTH_MEASUREMENTS_NOT_SET": "还没有填写出生时的测量值",
+    "UNSUPPORTED_MEDIA_TYPE": "只支持照片、视频和录音",
+    "MEDIA_NOT_FOUND": "找不到这个附件"
   },
   "profile": {
     "title": "宝宝档案",
@@ -113,12 +115,7 @@
       "LANGUAGE": "语言/沟通",
       "COGNITIVE": "认知",
       "MOTOR": "动作/身体发育"
-    },
-    "photo": "照片",
-    "uploadPhoto": "上传照片",
-    "addPhoto": "添加照片",
-    "replacePhoto": "更换照片",
-    "photoPending": "照片会在标记达成后一起保存"
+    }
   },
   "care": {
     "title": "日常护理",
@@ -135,13 +132,7 @@
       "FEEDING": "例如：150ml 或 左侧 10 分钟",
       "SLEEP": "例如：小睡 1 小时",
       "DIAPER": "例如：湿 / 脏"
-    },
-    "photo": "照片",
-    "addPhoto": "添加照片",
-    "replacePhoto": "更换照片",
-    "removePhoto": "删除照片",
-    "uploading": "上传中…",
-    "photoHint": "支持 JPEG、PNG、WebP，最大 25MB；保存时会自动压缩到 1MB 以内。"
+    }
   },
   "home": {
     "welcome": "欢迎回来",
@@ -164,13 +155,24 @@
     "disclaimer": "仅显示在参考人群中的位置，不作临床判断。请与儿科医生讨论。",
     "outOfRange": "该孕周（<33 周）不在本应用内置的标准范围内。INTERGROWTH-21st 另有极早产儿标准，本应用未收录。"
   },
-  "photos": {
-    "title": "照片",
-    "count": "共 {{count}} 张",
+  "media": {
+    "title": "媒体",
+    "count": "共 {{count}} 项",
     "profilePhoto": "档案照片",
-    "empty": "还没有照片",
-    "emptyHint": "在日常护理记录或里程碑中添加照片后，会自动出现在这里。",
+    "empty": "还没有任何内容",
+    "emptyHint": "在日常护理记录或里程碑中添加照片、视频或录音后，会自动出现在这里。",
     "openEntry": "查看原记录",
-    "noDate": "没有日期"
+    "noDate": "没有日期",
+    "attachments": "照片 / 视频 / 录音",
+    "add": "添加",
+    "uploading": "上传中…",
+    "remove": "移除",
+    "pending": "{{count}} 个文件会在保存后一起上传",
+    "hint": "可一次选择多个。支持照片、视频和录音，单个最大 200MB；照片会自动压缩到 1MB 以内。",
+    "kind": {
+      "PHOTO": "照片",
+      "VIDEO": "视频",
+      "AUDIO": "录音"
+    }
   }
 }

@@ -1,6 +1,6 @@
 package com.bb.progress.milestone;
 
-import com.bb.progress.photo.PhotoResponses;
+import com.bb.progress.media.MediaDtos.MediaView;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
@@ -17,11 +17,10 @@ public final class MilestoneDtos {
             @Size(max = 500) String note) {
     }
 
-    public record AchievementView(LocalDate achievedOn, String note, boolean hasPhoto, String photoVersion) {
+    public record AchievementView(LocalDate achievedOn, String note, List<MediaView> media) {
 
-        public static AchievementView from(MilestoneAchievement achievement) {
-            return new AchievementView(achievement.getAchievedOn(), achievement.getNote(),
-                    achievement.getPhotoPath() != null, PhotoResponses.versionOf(achievement.getPhotoPath()));
+        public static AchievementView from(MilestoneAchievement achievement, List<MediaView> media) {
+            return new AchievementView(achievement.getAchievedOn(), achievement.getNote(), media);
         }
     }
 

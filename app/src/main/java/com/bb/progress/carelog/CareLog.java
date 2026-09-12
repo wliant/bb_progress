@@ -27,9 +27,6 @@ public class CareLog {
 
     private String note;
 
-    @Column(name = "photo_path")
-    private String photoPath;
-
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -81,11 +78,4 @@ public class CareLog {
         this.note = note;
     }
 
-    public String getPhotoPath() {
-        return photoPath;
-    }
-
-    public void setPhotoPath(String photoPath) {
-        this.photoPath = photoPath;
-    }
 }

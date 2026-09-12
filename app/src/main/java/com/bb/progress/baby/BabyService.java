@@ -1,8 +1,9 @@
 package com.bb.progress.baby;
 
 import com.bb.progress.baby.BabyDtos.BabyRequest;
-import com.bb.progress.carelog.CareLog;
 import com.bb.progress.carelog.CareLogRepository;
+import com.bb.progress.media.Media;
+import com.bb.progress.media.MediaRepository;
 import com.bb.progress.common.ApiException;
 import com.bb.progress.growth.GrowthRecord;
 import com.bb.progress.growth.GrowthRecordRepository;
@@ -22,15 +23,17 @@ public class BabyService {
     private final GrowthRecordRepository growthRecords;
     private final MilestoneAchievementRepository achievements;
     private final CareLogRepository careLogs;
+    private final MediaRepository mediaRepository;
 
     public BabyService(BabyRepository repository, PhotoStorageService photoStorage,
             GrowthRecordRepository growthRecords, MilestoneAchievementRepository achievements,
-            CareLogRepository careLogs) {
+            CareLogRepository careLogs, MediaRepository mediaRepository) {
         this.repository = repository;
         this.photoStorage = photoStorage;
         this.growthRecords = growthRecords;
         this.achievements = achievements;
         this.careLogs = careLogs;
+        this.mediaRepository = mediaRepository;
     }
 
     @Transactional(readOnly = true)
@@ -142,12 +145,9 @@ public class BabyService {
     public void resetAll() {
         repository.findFirstByOrderByCreatedAtAsc()
                 .ifPresent(baby -> photoStorage.deleteIfExists(baby.getPhotoPath()));
-        achievements.findAll().stream()
-                .map(MilestoneAchievement::getPhotoPath)
-                .forEach(photoStorage::deleteIfExists);
-        careLogs.findAll().stream()
-                .map(CareLog::getPhotoPath)
-                .forEach(photoStorage::deleteIfExists);
+        // Every attachment's object, whichever entry it hangs off.
+        mediaRepository.findAll().stream().map(Media::getObjectKey).forEach(photoStorage::deleteIfExists);
+        mediaRepository.deleteAll();
         careLogs.deleteAll();
         growthRecords.deleteAll();
         achievements.deleteAll();

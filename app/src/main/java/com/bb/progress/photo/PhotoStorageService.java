@@ -88,6 +88,20 @@ public class PhotoStorageService {
     }
 
     /**
+     * Stores the upload unchanged under the given extension, streaming rather than buffering.
+     * Used for video and voice recordings, which the app deliberately does not transcode.
+     */
+    public String storeAs(String prefix, MultipartFile file, String extension) {
+        String key = newKey(prefix, extension);
+        try (InputStream in = file.getInputStream()) {
+            put(key, file.getContentType(), RequestBody.fromInputStream(in, file.getSize()));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to store media", e);
+        }
+        return key;
+    }
+
+    /**
      * Re-encodes the upload to a JPEG of at most {@code maxBytes} before storing, so a photo
      * straight off a phone can be accepted without keeping megabytes per log entry.
      */

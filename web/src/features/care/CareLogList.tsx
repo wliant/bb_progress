@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import type { CareLog, CareType } from '../../api/types'
+import type { CareLog, CareType, Media } from '../../api/types'
+import { KIND_ICON } from '../media/MediaPicker'
 import { timeSgt } from '../../lib/dates'
 
 export const CARE_ICONS: Record<CareType, string> = {
@@ -14,6 +15,30 @@ interface Props {
 }
 
 /** Each row opens the edit dialog — that is how a one-tap entry gets its note. */
+/** The first attachment as a tile, with a count when there are more. */
+function MediaBadge({ media }: { media: Media[] }) {
+  const { t } = useTranslation()
+  const first = media[0]
+  return (
+    <span className="relative shrink-0">
+      {first.thumbnailUrl ? (
+        <img src={first.thumbnailUrl} alt={t(`media.kind.${first.kind}`)}
+          className="h-10 w-10 rounded-md object-cover" />
+      ) : (
+        <span className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-100 text-lg"
+          aria-label={t(`media.kind.${first.kind}`)} role="img">
+          {KIND_ICON[first.kind]}
+        </span>
+      )}
+      {media.length > 1 && (
+        <span className="absolute -right-1 -top-1 rounded-full bg-slate-800 px-1.5 text-[10px] text-white">
+          {media.length}
+        </span>
+      )}
+    </span>
+  )
+}
+
 export function CareLogList({ logs, onSelect }: Props) {
   const { t } = useTranslation()
 
@@ -32,13 +57,7 @@ export function CareLogList({ logs, onSelect }: Props) {
               {t(`care.${log.type}`)}
               {log.note && <span className="text-slate-400"> · {log.note}</span>}
             </span>
-            {log.hasPhoto && (
-              <img
-                src={`/api/care-logs/${log.id}/photo?v=${log.photoVersion}`}
-                alt={t('care.photo')}
-                className="h-10 w-10 shrink-0 rounded-md object-cover"
-              />
-            )}
+            {log.media.length > 0 && <MediaBadge media={log.media} />}
             <span aria-hidden className="text-slate-300">›</span>
           </button>
         </li>

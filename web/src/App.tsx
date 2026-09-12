@@ -5,7 +5,7 @@ import { ProfilePage } from './pages/ProfilePage'
 import { GrowthPage } from './pages/GrowthPage'
 import { MilestonesPage } from './pages/MilestonesPage'
 import { CareLogsPage } from './pages/CareLogsPage'
-import { PhotosPage } from './pages/PhotosPage'
+import { MediaPage } from './pages/MediaPage'
 
 export default function App() {
   return (
@@ -16,7 +16,7 @@ export default function App() {
         <Route path="/growth" element={<GrowthPage />} />
         <Route path="/milestones" element={<MilestonesPage />} />
         <Route path="/care" element={<CareLogsPage />} />
-        <Route path="/photos" element={<PhotosPage />} />
+        <Route path="/media" element={<MediaPage />} />
       </Route>
     </Routes>
   )

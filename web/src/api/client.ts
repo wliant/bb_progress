@@ -44,6 +44,15 @@ export async function apiSend<T>(
   return response.json() as Promise<T>
 }
 
+/** Multipart POST of one or more files under the `files` field. */
+export async function apiUploadMany<T>(path: string, files: File[]): Promise<T> {
+  const form = new FormData()
+  for (const file of files) form.append('files', file)
+  const response = await fetch(path, { method: 'POST', body: form })
+  if (!response.ok) await parseError(response)
+  return response.json() as Promise<T>
+}
+
 export async function apiUpload<T>(path: string, file: File): Promise<T> {
   const form = new FormData()
   form.append('file', file)

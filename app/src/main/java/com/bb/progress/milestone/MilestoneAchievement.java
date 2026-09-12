@@ -23,9 +23,6 @@ public class MilestoneAchievement {
     @Column(name = "achieved_on", nullable = false)
     private LocalDate achievedOn;
 
-    @Column(name = "photo_path")
-    private String photoPath;
-
     private String note;
 
     @Column(name = "created_at", nullable = false)
@@ -71,13 +68,6 @@ public class MilestoneAchievement {
         this.achievedOn = achievedOn;
     }
 
-    public String getPhotoPath() {
-        return photoPath;
-    }
-
-    public void setPhotoPath(String photoPath) {
-        this.photoPath = photoPath;
-    }
 
     public String getNote() {
         return note;

@@ -1,7 +1,8 @@
 package com.bb.progress.carelog;
 
 import com.bb.progress.common.Sgt;
-import com.bb.progress.photo.PhotoResponses;
+import com.bb.progress.media.MediaDtos.MediaView;
+import java.util.List;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.OffsetDateTime;
@@ -28,13 +29,11 @@ public final class CareLogDtos {
             CareType type,
             OffsetDateTime loggedAt,
             String note,
-            boolean hasPhoto,
-            String photoVersion) {
+            List<MediaView> media) {
 
-        public static CareLogResponse from(CareLog log) {
+        public static CareLogResponse from(CareLog log, List<MediaView> media) {
             return new CareLogResponse(log.getId(), log.getType(),
-                    log.getLoggedAt().atZone(Sgt.ZONE).toOffsetDateTime(), log.getNote(),
-                    log.getPhotoPath() != null, PhotoResponses.versionOf(log.getPhotoPath()));
+                    log.getLoggedAt().atZone(Sgt.ZONE).toOffsetDateTime(), log.getNote(), media);
         }
     }
 }

@@ -179,13 +179,13 @@ class ApiIntegrationTest {
                         .content("{\"achievedOn\":\"2026-03-20\",\"note\":\"第一次社交微笑\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.achievedOn").value("2026-03-20"))
-                .andExpect(jsonPath("$.hasPhoto").value(false));
+                .andExpect(jsonPath("$.media", org.hamcrest.Matchers.hasSize(0)));
 
-        mockMvc.perform(multipart("/api/milestones/2m-social-smiles/achievement/photo")
-                        .file(new MockMultipartFile("file", "smile.jpg", "image/jpeg", tinyJpeg()))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
+        mockMvc.perform(multipart("/api/milestones/2m-social-smiles/achievement/media")
+                        .file(new MockMultipartFile("files", "smile.jpg", "image/jpeg", tinyJpeg())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hasPhoto").value(true));
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[0].kind").value("PHOTO"));
 
         mockMvc.perform(delete("/api/milestones/2m-social-smiles/achievement"))
                 .andExpect(status().isNoContent());
@@ -344,18 +344,16 @@ class ApiIntegrationTest {
                 Integer.class)).isEqualTo(1);
 
         // A photo survives a later edit of the date/note.
-        mockMvc.perform(multipart("/api/milestones/4m-motor-holds-toy/achievement/photo")
-                        .file(new MockMultipartFile("file", "p.jpg", "image/jpeg", tinyJpeg()))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
+        mockMvc.perform(multipart("/api/milestones/4m-motor-holds-toy/achievement/media")
+                        .file(new MockMultipartFile("files", "p.jpg", "image/jpeg", tinyJpeg())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hasPhoto").value(true))
-                .andExpect(jsonPath("$.photoVersion").isNotEmpty());
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)));
 
         mockMvc.perform(put("/api/milestones/4m-motor-holds-toy/achievement")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"achievedOn\":\"2026-05-21\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hasPhoto").value(true));
+                .andExpect(jsonPath("$.media", org.hamcrest.Matchers.hasSize(1)));
     }
 
     /** Runs last: wipes the profile, so it also covers the "no profile yet" preconditions. */
@@ -471,51 +469,72 @@ class ApiIntegrationTest {
     /** A photo straight off a phone is accepted and stored small. */
     @Test
     @Order(16)
-    void careLogPhotoIsAcceptedAtPhoneSizeAndStoredUnderOneMegabyte() throws Exception {
+    void careLogMediaAcceptsPhotoVideoAndVoice() throws Exception {
         MvcResult created = mockMvc.perform(post("/api/care-logs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"FEEDING\",\"note\":\"150ml\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.hasPhoto").value(false))
+                .andExpect(jsonPath("$.media", org.hamcrest.Matchers.hasSize(0)))
                 .andReturn();
         String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
 
         byte[] bigPhoto = largeNoisyPng(4032, 3024);
         assertThat(bigPhoto.length).isGreaterThan(5_000_000);
 
-        mockMvc.perform(multipart("/api/care-logs/" + id + "/photo")
-                        .file(new MockMultipartFile("file", "IMG_0001.png", "image/png", bigPhoto))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
+        // Several files at once, one of each kind.
+        MvcResult uploaded = mockMvc.perform(multipart("/api/care-logs/" + id + "/media")
+                        .file(new MockMultipartFile("files", "IMG_0001.png", "image/png", bigPhoto))
+                        .file(new MockMultipartFile("files", "clip.mp4", "video/mp4", "fake-video-bytes".getBytes()))
+                        .file(new MockMultipartFile("files", "note.m4a", "audio/mp4", "fake-audio-bytes".getBytes())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hasPhoto").value(true))
-                .andExpect(jsonPath("$.photoVersion").isNotEmpty())
-                // The note survives a photo upload.
-                .andExpect(jsonPath("$.note").value("150ml"));
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(3)))
+                .andExpect(jsonPath("$[0].kind").value("PHOTO"))
+                .andExpect(jsonPath("$[1].kind").value("VIDEO"))
+                .andExpect(jsonPath("$[2].kind").value("AUDIO"))
+                // Only photos get a thumbnail; there is no transcoder to make one for the rest.
+                .andExpect(jsonPath("$[0].thumbnailUrl").isNotEmpty())
+                .andExpect(jsonPath("$[1].thumbnailUrl").doesNotExist())
+                .andReturn();
+        String body = uploaded.getResponse().getContentAsString();
+        String photoId = com.jayway.jsonpath.JsonPath.read(body, "$[0].id");
+        String videoId = com.jayway.jsonpath.JsonPath.read(body, "$[1].id");
+        String audioId = com.jayway.jsonpath.JsonPath.read(body, "$[2].id");
 
-        MvcResult served = mockMvc.perform(get("/api/care-logs/" + id + "/photo"))
+        // The note survives the upload and the entry carries all three.
+        mockMvc.perform(get("/api/care-logs"))
+                .andExpect(jsonPath("$[0].note").value("150ml"))
+                .andExpect(jsonPath("$[0].media", org.hamcrest.Matchers.hasSize(3)));
+
+        MvcResult served = mockMvc.perform(get("/api/media/" + photoId + "/content"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-cache")))
                 .andExpect(header().exists("ETag"))
                 .andReturn();
-        byte[] stored = served.getResponse().getContentAsByteArray();
-        assertThat(stored.length).isLessThanOrEqualTo(1_048_576);
+        assertThat(served.getResponse().getContentAsByteArray().length).isLessThanOrEqualTo(1_048_576);
         assertThat(served.getResponse().getContentType()).isEqualTo("image/jpeg");
 
-        // The list carries the photo flag so rows can show a thumbnail.
-        mockMvc.perform(get("/api/care-logs"))
-                .andExpect(jsonPath("$[0].hasPhoto").value(true));
-
-        mockMvc.perform(delete("/api/care-logs/" + id + "/photo"))
+        // Video and voice are served back exactly as uploaded, with their own content types.
+        MvcResult video = mockMvc.perform(get("/api/media/" + videoId + "/content"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hasPhoto").value(false));
-        mockMvc.perform(get("/api/care-logs/" + id + "/photo"))
+                .andReturn();
+        assertThat(video.getResponse().getContentType()).isEqualTo("video/mp4");
+        assertThat(video.getResponse().getContentAsByteArray()).isEqualTo("fake-video-bytes".getBytes());
+        mockMvc.perform(get("/api/media/" + audioId + "/content"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "audio/mp4"));
+
+        // Removing one attachment leaves the others.
+        mockMvc.perform(delete("/api/media/" + videoId)).andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/care-logs/" + id + "/media"))
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(2)));
+        mockMvc.perform(get("/api/media/" + videoId + "/content"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("PHOTO_NOT_FOUND"));
+                .andExpect(jsonPath("$.code").value("MEDIA_NOT_FOUND"));
     }
 
     @Test
     @Order(17)
-    void careLogPhotoRejectsNonImagesAndUnsupportedTypes() throws Exception {
+    void careLogMediaRejectsUnsupportedTypes() throws Exception {
         MvcResult created = mockMvc.perform(post("/api/care-logs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"DIAPER\"}"))
@@ -523,24 +542,21 @@ class ApiIntegrationTest {
                 .andReturn();
         String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
 
-        mockMvc.perform(multipart("/api/care-logs/" + id + "/photo")
-                        .file(new MockMultipartFile("file", "x.heic", "image/heic", new byte[] {1, 2, 3}))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
+        mockMvc.perform(multipart("/api/care-logs/" + id + "/media")
+                        .file(new MockMultipartFile("files", "x.heic", "image/heic", new byte[] {1, 2, 3})))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("UNSUPPORTED_PHOTO_TYPE"));
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"));
 
-        // Right content type, but the bytes are not decodable.
-        mockMvc.perform(multipart("/api/care-logs/" + id + "/photo")
-                        .file(new MockMultipartFile("file", "x.jpg", "image/jpeg", "junk".getBytes()))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
+        mockMvc.perform(multipart("/api/care-logs/" + id + "/media")
+                        .file(new MockMultipartFile("files", "doc.pdf", "application/pdf", new byte[] {1, 2})))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"));
+
+        // Right content type, but the bytes are not a decodable image.
+        mockMvc.perform(multipart("/api/care-logs/" + id + "/media")
+                        .file(new MockMultipartFile("files", "x.jpg", "image/jpeg", "junk".getBytes())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("IMAGE_UNREADABLE"));
-
-        mockMvc.perform(multipart("/api/care-logs/00000000-0000-0000-0000-000000000000/photo")
-                        .file(new MockMultipartFile("file", "x.jpg", "image/jpeg", tinyJpeg()))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("CARE_LOG_NOT_FOUND"));
     }
 
     /** Deleting an entry must not leave its object behind in storage. */
@@ -554,14 +570,13 @@ class ApiIntegrationTest {
                 .andReturn();
         String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
 
-        mockMvc.perform(multipart("/api/care-logs/" + id + "/photo")
-                        .file(new MockMultipartFile("file", "p.jpg", "image/jpeg", tinyJpeg()))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
+        mockMvc.perform(multipart("/api/care-logs/" + id + "/media")
+                        .file(new MockMultipartFile("files", "p.jpg", "image/jpeg", tinyJpeg())))
                 .andExpect(status().isOk());
 
-        long before = countStoredPhotos("care-logs");
+        long before = countStoredPhotos("media");
         mockMvc.perform(delete("/api/care-logs/" + id)).andExpect(status().isNoContent());
-        assertThat(countStoredPhotos("care-logs")).isEqualTo(before - 1);
+        assertThat(countStoredPhotos("media")).isEqualTo(before - 1);
     }
 
     /** The profile photo is the one image kept exactly as uploaded. */
@@ -672,7 +687,7 @@ class ApiIntegrationTest {
                         .content("{\"name\":\"小宝\",\"dateOfBirth\":\"2026-01-15\",\"gender\":\"FEMALE\"}"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/photos"))
+        mockMvc.perform(get("/api/media"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
 
@@ -683,9 +698,9 @@ class ApiIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
         String logId = com.jayway.jsonpath.JsonPath.read(log.getResponse().getContentAsString(), "$.id");
-        mockMvc.perform(multipart("/api/care-logs/" + logId + "/photo")
-                        .file(new MockMultipartFile("file", "a.jpg", "image/jpeg", tinyJpeg()))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
+        mockMvc.perform(multipart("/api/care-logs/" + logId + "/media")
+                        .file(new MockMultipartFile("files", "a.jpg", "image/jpeg", tinyJpeg()))
+                        .file(new MockMultipartFile("files", "v.mp4", "video/mp4", "vid".getBytes())))
                 .andExpect(status().isOk());
 
         // A milestone photo, achieved on a later date so it sorts first.
@@ -693,9 +708,8 @@ class ApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"achievedOn\":\"2026-06-01\"}"))
                 .andExpect(status().isOk());
-        mockMvc.perform(multipart("/api/milestones/2m-social-smiles/achievement/photo")
-                        .file(new MockMultipartFile("file", "b.jpg", "image/jpeg", tinyJpeg()))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
+        mockMvc.perform(multipart("/api/milestones/2m-social-smiles/achievement/media")
+                        .file(new MockMultipartFile("files", "b.jpg", "image/jpeg", tinyJpeg())))
                 .andExpect(status().isOk());
 
         // And the profile photo, which has no date and therefore leads.
@@ -704,10 +718,11 @@ class ApiIntegrationTest {
                         .with(req -> { req.setMethod("PUT"); return req; }))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/photos"))
+        mockMvc.perform(get("/api/media"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(3)))
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(4)))
                 .andExpect(jsonPath("$[0].source").value("PROFILE"))
+                .andExpect(jsonPath("$[0].kind").value("PHOTO"))
                 .andExpect(jsonPath("$[0].takenOn").doesNotExist())
                 .andExpect(jsonPath("$[1].source").value("MILESTONE"))
                 .andExpect(jsonPath("$[1].takenOn").value("2026-06-01"))
@@ -718,11 +733,14 @@ class ApiIntegrationTest {
                 .andExpect(jsonPath("$[2].careType").value("FEEDING"))
                 .andExpect(jsonPath("$[2].note").value("150ml"))
                 .andExpect(jsonPath("$[2].thumbnailUrl",
-                        org.hamcrest.Matchers.containsString("size=thumb")));
+                        org.hamcrest.Matchers.containsString("size=thumb")))
+                // The video from the same entry is listed too, without a thumbnail.
+                .andExpect(jsonPath("$[3].kind").value("VIDEO"))
+                .andExpect(jsonPath("$[3].thumbnailUrl").doesNotExist());
 
-        // Removing a photo removes it from the gallery.
-        mockMvc.perform(delete("/api/care-logs/" + logId + "/photo")).andExpect(status().isOk());
-        mockMvc.perform(get("/api/photos"))
+        // Deleting the entry takes its attachments out of the gallery.
+        mockMvc.perform(delete("/api/care-logs/" + logId)).andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/media"))
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(2)));
     }
 
@@ -736,16 +754,17 @@ class ApiIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
         String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
-        mockMvc.perform(multipart("/api/care-logs/" + id + "/photo")
-                        .file(new MockMultipartFile("file", "big.png", "image/png", photo))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
-                .andExpect(status().isOk());
+        MvcResult up = mockMvc.perform(multipart("/api/care-logs/" + id + "/media")
+                        .file(new MockMultipartFile("files", "big.png", "image/png", photo)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String mediaId = com.jayway.jsonpath.JsonPath.read(up.getResponse().getContentAsString(), "$[0].id");
 
-        byte[] full = mockMvc.perform(get("/api/care-logs/" + id + "/photo"))
+        byte[] full = mockMvc.perform(get("/api/media/" + mediaId + "/content"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsByteArray();
 
-        MvcResult thumbResult = mockMvc.perform(get("/api/care-logs/" + id + "/photo?size=thumb"))
+        MvcResult thumbResult = mockMvc.perform(get("/api/media/" + mediaId + "/content?size=thumb"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", "image/jpeg"))
                 .andReturn();
@@ -756,14 +775,18 @@ class ApiIntegrationTest {
 
         // A thumbnail must not be served from the full image's cache entry, and vice versa.
         String thumbEtag = thumbResult.getResponse().getHeader("ETag");
-        mockMvc.perform(get("/api/care-logs/" + id + "/photo?size=thumb").header("If-None-Match", thumbEtag))
+        mockMvc.perform(get("/api/media/" + mediaId + "/content?size=thumb").header("If-None-Match", thumbEtag))
                 .andExpect(status().isNotModified());
-        mockMvc.perform(get("/api/care-logs/" + id + "/photo").header("If-None-Match", thumbEtag))
+        mockMvc.perform(get("/api/media/" + mediaId + "/content").header("If-None-Match", thumbEtag))
                 .andExpect(status().isOk());
 
-        // Deleting the entry takes the cached thumbnail with it.
+        // Deleting the entry takes the attachment and its cached thumbnail with it.
+        long before = countStoredPhotos("media");
         mockMvc.perform(delete("/api/care-logs/" + id)).andExpect(status().isNoContent());
-        assertThat(countStoredPhotos("care-logs")).isZero();
+        mockMvc.perform(get("/api/media/" + mediaId + "/content"))
+                .andExpect(status().isNotFound());
+        // The original and its thumbnail, and nothing else.
+        assertThat(countStoredPhotos("media")).isEqualTo(before - 2);
     }
 
     /** A reset deletes rows in bulk, so every photo must be removed explicitly alongside them. */
@@ -785,29 +808,31 @@ class ApiIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
         String logId = com.jayway.jsonpath.JsonPath.read(log.getResponse().getContentAsString(), "$.id");
-        mockMvc.perform(multipart("/api/care-logs/" + logId + "/photo")
-                        .file(new MockMultipartFile("file", "a.jpg", "image/jpeg", tinyJpeg()))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
-                .andExpect(status().isOk());
+        MvcResult attached = mockMvc.perform(multipart("/api/care-logs/" + logId + "/media")
+                        .file(new MockMultipartFile("files", "a.jpg", "image/jpeg", tinyJpeg()))
+                        .file(new MockMultipartFile("files", "v.mp4", "video/mp4", "vid".getBytes())))
+                .andExpect(status().isOk())
+                .andReturn();
+        String attachedId = com.jayway.jsonpath.JsonPath.read(
+                attached.getResponse().getContentAsString(), "$[0].id");
         // Viewing the gallery materialises a cached thumbnail, which must also go.
-        mockMvc.perform(get("/api/care-logs/" + logId + "/photo?size=thumb")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/media/" + attachedId + "/content?size=thumb")).andExpect(status().isOk());
 
         mockMvc.perform(put("/api/milestones/2m-social-smiles/achievement")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"achievedOn\":\"2026-03-20\"}"))
                 .andExpect(status().isOk());
-        mockMvc.perform(multipart("/api/milestones/2m-social-smiles/achievement/photo")
-                        .file(new MockMultipartFile("file", "b.jpg", "image/jpeg", tinyJpeg()))
-                        .with(req -> { req.setMethod("PUT"); return req; }))
+        mockMvc.perform(multipart("/api/milestones/2m-social-smiles/achievement/media")
+                        .file(new MockMultipartFile("files", "b.jpg", "image/jpeg", tinyJpeg())))
                 .andExpect(status().isOk());
 
-        assertThat(countStoredPhotos("care-logs")).isPositive();
+        assertThat(countStoredPhotos("media")).isPositive();
 
         mockMvc.perform(delete("/api/baby")).andExpect(status().isNoContent());
 
         assertThat(countStoredPhotos("baby")).isZero();
-        assertThat(countStoredPhotos("care-logs")).isZero();
-        assertThat(countStoredPhotos("milestones")).isZero();
+        assertThat(countStoredPhotos("media")).isZero();
+        assertThat(countStoredPhotos("media")).isZero();
     }
 
     private static byte[] largeNoisyPng(int width, int height) throws Exception {

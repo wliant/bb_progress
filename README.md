@@ -2,7 +2,7 @@
 
 Personal baby development monitoring app for a single baby. Bilingual (简体中文 / English, defaults to Chinese), Singapore Time everywhere.
 
-**Features**: baby profile (with photo, birth details and gestational age) · growth records with WHO percentile charts · CDC developmental milestone checklist (bilingual) · quick daily care logging (feeding / sleep / diaper, with photos) · a photo gallery across everything.
+**Features**: baby profile (with photo, birth details and gestational age) · growth records with WHO percentile charts · CDC developmental milestone checklist (bilingual) · quick daily care logging (feeding / sleep / diaper) · photo, video and voice attachments on every entry and milestone · a media gallery across everything.
 
 ## Stack
 
@@ -11,7 +11,7 @@ Personal baby development monitoring app for a single baby. Bilingual (简体中
 | `app/` | Java 21, Spring Boot 4, PostgreSQL, Flyway, Gradle (Kotlin DSL) |
 | `web/` | React 19, Vite, TypeScript, Tailwind CSS, TanStack Query, Recharts, react-i18next |
 | `e2e/` | Playwright (desktop + mobile viewports) |
-| storage | Photos in S3-compatible object storage — MinIO in the stack by default, or real AWS S3 |
+| storage | Media in S3-compatible object storage — MinIO in the stack by default, or real AWS S3 |
 
 ## Run it
 
@@ -56,9 +56,11 @@ separate databases, separate object storage, separate networks.
 Note it is `INSTANCE`, not `COMPOSE_PROJECT_NAME`: the latter is an environment variable that
 overrides the `name:` in each compose file, which would merge the two stacks back into one project.
 
-## Photo storage
+## Media storage
 
-Photo bytes live in S3-compatible object storage; the database holds only the object key. The
+Photos, videos and voice notes live in S3-compatible object storage; the database holds only the
+object key. Photos are re-encoded to under 1 MB on upload; video and voice are stored exactly as
+recorded, because the app has no transcoder — which also means only photos get thumbnails. The
 compose stack runs **MinIO**, so it needs no AWS account and works offline, and each instance gets
 its own bucket and volume.
 

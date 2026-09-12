@@ -63,8 +63,7 @@ export interface GrowthStandards {
 export interface MilestoneAchievement {
   achievedOn: string
   note: string | null
-  hasPhoto: boolean
-  photoVersion: string | null
+  media: Media[]
 }
 
 export interface Milestone {
@@ -80,13 +79,23 @@ export interface MilestoneAgeGroup {
   milestones: Milestone[]
 }
 
+export type MediaKind = 'PHOTO' | 'VIDEO' | 'AUDIO'
+
+export interface Media {
+  id: string
+  kind: MediaKind
+  contentType: string
+  url: string
+  /** Null for video and audio — there is no generated frame for them. */
+  thumbnailUrl: string | null
+}
+
 export interface CareLog {
   id: string
   type: CareType
   loggedAt: string
   note: string | null
-  hasPhoto: boolean
-  photoVersion: string | null
+  media: Media[]
 }
 
 export interface ApiErrorBody {
@@ -111,13 +120,15 @@ export interface NewbornAssessment {
   assessments: NewbornAssessmentItem[]
 }
 
-export type PhotoSource = 'PROFILE' | 'MILESTONE' | 'CARE_LOG'
 
-export interface GalleryPhoto {
+export type MediaSource = 'PROFILE' | 'MILESTONE' | 'CARE_LOG'
+
+export interface GalleryItem {
   id: string
-  source: PhotoSource
+  source: MediaSource
+  kind: MediaKind
   url: string
-  thumbnailUrl: string
+  thumbnailUrl: string | null
   /** Null for the profile photo, which has no date of its own. */
   takenOn: string | null
   takenAt: string | null

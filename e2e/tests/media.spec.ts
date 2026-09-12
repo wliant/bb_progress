@@ -10,9 +10,9 @@ test.beforeEach(async ({ request }) => {
   await request.delete('/api/milestones/2m-motor-head-up/achievement')
 })
 
-test('a photo added to a care entry shows up in the gallery', async ({ page }) => {
-  await page.goto('/photos')
-  await expect(page.getByText('还没有照片')).toBeVisible()
+test('media added to a care entry shows up in the gallery', async ({ page }) => {
+  await page.goto('/media')
+  await expect(page.getByText('还没有任何内容')).toBeVisible()
 
   // Log a feed, add a photo and a note to it.
   await page.goto('/care')
@@ -20,7 +20,7 @@ test('a photo added to a care entry shows up in the gallery', async ({ page }) =
   await page.locator('li', { hasText: '喂奶' }).first().click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel(/备注/).fill('午餐')
-  await dialog.getByTestId('care-photo-input').setInputFiles({
+  await dialog.getByTestId('media-input').setInputFiles({
     name: 'lunch.png',
     mimeType: 'image/png',
     buffer: noisyPng(900, 700),
@@ -28,8 +28,8 @@ test('a photo added to a care entry shows up in the gallery', async ({ page }) =
   await expect(dialog.locator('img')).toBeVisible()
   await dialog.getByRole('button', { name: '保存' }).click()
 
-  await page.goto('/photos')
-  await expect(page.getByText('共 1 张')).toBeVisible()
+  await page.goto('/media')
+  await expect(page.getByText('共 1 项')).toBeVisible()
   await expect(page.getByText('喂奶 · 午餐')).toBeVisible()
 
   // The tile must use the thumbnail, not the full image.
@@ -42,7 +42,7 @@ test('the viewer shows the full image and links back to the entry', async ({ pag
   await page.goto('/care')
   await page.getByRole('button', { name: /换尿布/ }).click()
   await page.locator('li', { hasText: '换尿布' }).first().click()
-  await page.getByRole('dialog').getByTestId('care-photo-input').setInputFiles({
+  await page.getByRole('dialog').getByTestId('media-input').setInputFiles({
     name: 'p.png',
     mimeType: 'image/png',
     buffer: noisyPng(600, 450),
@@ -50,7 +50,7 @@ test('the viewer shows the full image and links back to the entry', async ({ pag
   await expect(page.getByRole('dialog').locator('img')).toBeVisible()
   await page.keyboard.press('Escape')
 
-  await page.goto('/photos')
+  await page.goto('/media')
   await page.getByRole('img').first().click()
 
   const viewer = page.getByRole('dialog')
@@ -74,7 +74,7 @@ test('a milestone photo appears with its title and follows the language switcher
   await expect(dialog).toBeHidden()
 
   await row.click()
-  await page.getByRole('dialog').locator('input[type=file]').setInputFiles({
+  await page.getByRole('dialog').getByTestId('media-input').setInputFiles({
     name: 'smile.png',
     mimeType: 'image/png',
     buffer: noisyPng(500, 400),
@@ -82,7 +82,7 @@ test('a milestone photo appears with its title and follows the language switcher
   await expect(page.getByRole('dialog').locator('img')).toBeVisible()
   await page.keyboard.press('Escape')
 
-  await page.goto('/photos')
+  await page.goto('/media')
   await expect(page.getByText('2026-03-20')).toBeVisible()
   await expect(page.getByText('你对宝宝说话或微笑时会报以微笑').first()).toBeVisible()
 
@@ -91,7 +91,7 @@ test('a milestone photo appears with its title and follows the language switcher
 })
 
 /** Attaching a photo to a milestone must not require saving, reopening, then uploading. */
-test('a milestone photo can be added in the same dialog as marking it achieved', async ({
+test('milestone media can be added in the same dialog as marking it achieved', async ({
   page,
   request,
 }) => {
@@ -100,16 +100,16 @@ test('a milestone photo can be added in the same dialog as marking it achieved',
   await page.locator('li', { hasText: '趴着时能抬头' }).click()
 
   const dialog = page.getByRole('dialog')
-  await expect(dialog.getByRole('button', { name: '添加照片' })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: '添加' })).toBeVisible()
   await dialog.getByLabel('达成日期').fill('2026-04-02')
-  await dialog.getByTestId('milestone-photo-input').setInputFiles({
+  await dialog.getByTestId('media-input').setInputFiles({
     name: 'tummy.png',
     mimeType: 'image/png',
     buffer: noisyPng(700, 520),
   })
   // Held as a local preview until the achievement exists.
   await expect(dialog.locator('img')).toBeVisible()
-  await expect(dialog.getByText('照片会在标记达成后一起保存')).toBeVisible()
+  await expect(dialog.getByText(/会在保存后一起上传/)).toBeVisible()
 
   await dialog.getByRole('button', { name: '标记达成' }).click()
   await expect(dialog).toBeHidden()
@@ -118,32 +118,33 @@ test('a milestone photo can be added in the same dialog as marking it achieved',
   const achieved = milestones
     .flatMap((g: { milestones: unknown[] }) => g.milestones)
     .find((m: { id: string }) => m.id === '2m-motor-head-up')
-  expect(achieved.achievement).toMatchObject({ achievedOn: '2026-04-02', hasPhoto: true })
+  expect(achieved.achievement.achievedOn).toBe('2026-04-02')
+  expect(achieved.achievement.media).toHaveLength(1)
 
-  await page.goto('/photos')
+  await page.goto('/media')
   await expect(page.getByText('2026-04-02')).toBeVisible()
   await expect(page.getByText('趴着时能抬头').first()).toBeVisible()
 })
 
-test('removing a photo removes it from the gallery', async ({ page }) => {
+test('removing an attachment removes it from the gallery', async ({ page }) => {
   await page.goto('/care')
   await page.getByRole('button', { name: /睡觉/ }).click()
   await page.locator('li', { hasText: '睡觉' }).first().click()
-  await page.getByRole('dialog').getByTestId('care-photo-input').setInputFiles({
+  await page.getByRole('dialog').getByTestId('media-input').setInputFiles({
     name: 'x.png',
     mimeType: 'image/png',
     buffer: noisyPng(400, 300),
   })
   await expect(page.getByRole('dialog').locator('img')).toBeVisible()
 
-  await page.goto('/photos')
-  await expect(page.getByText('共 1 张')).toBeVisible()
+  await page.goto('/media')
+  await expect(page.getByText('共 1 项')).toBeVisible()
 
   await page.goto('/care')
   await page.locator('li', { hasText: '睡觉' }).first().click()
-  await page.getByRole('dialog').getByRole('button', { name: '删除照片' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: '移除' }).first().click()
   await expect(page.getByRole('dialog').locator('img')).toHaveCount(0)
 
-  await page.goto('/photos')
-  await expect(page.getByText('还没有照片')).toBeVisible()
+  await page.goto('/media')
+  await expect(page.getByText('还没有任何内容')).toBeVisible()
 })

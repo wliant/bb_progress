@@ -44,57 +44,26 @@ describe('MilestonesPage', () => {
     expect(screen.getByText('服务器出错了，请稍后重试')).toBeInTheDocument()
   })
 
-  it('shows the uploaded photo without needing the dialog reopened', async () => {
+  it('shows an uploaded attachment without needing the dialog reopened', async () => {
     // The dialog must read the refreshed milestone, not the snapshot it opened with.
     let uploaded = false
+    const achieved = (media: unknown[]) => [{
+      ...testMilestones[0],
+      milestones: [
+        { ...testMilestones[0].milestones[0],
+          achievement: { achievedOn: '2026-03-10', note: null, media } },
+        testMilestones[0].milestones[1],
+      ],
+    }]
     server.use(
       http.get('/api/milestones', () =>
-        HttpResponse.json(
-          uploaded
-            ? [
-                {
-                  ...testMilestones[0],
-                  milestones: [
-                    {
-                      ...testMilestones[0].milestones[0],
-                      achievement: {
-                        achievedOn: '2026-03-10',
-                        note: null,
-                        hasPhoto: true,
-                        photoVersion: 'v2',
-                      },
-                    },
-                    testMilestones[0].milestones[1],
-                  ],
-                },
-              ]
-            : [
-                {
-                  ...testMilestones[0],
-                  milestones: [
-                    {
-                      ...testMilestones[0].milestones[0],
-                      achievement: {
-                        achievedOn: '2026-03-10',
-                        note: null,
-                        hasPhoto: false,
-                        photoVersion: null,
-                      },
-                    },
-                    testMilestones[0].milestones[1],
-                  ],
-                },
-              ],
-        ),
+        HttpResponse.json(achieved(uploaded ? [{ id: 'm1', kind: 'PHOTO', contentType: 'image/jpeg',
+          url: '/api/media/m1/content', thumbnailUrl: '/api/media/m1/content?size=thumb' }] : [])),
       ),
-      http.put('/api/milestones/:id/achievement/photo', () => {
+      http.post('/api/milestones/:id/achievement/media', () => {
         uploaded = true
-        return HttpResponse.json({
-          achievedOn: '2026-03-10',
-          note: null,
-          hasPhoto: true,
-          photoVersion: 'v2',
-        })
+        return HttpResponse.json([{ id: 'm1', kind: 'PHOTO', contentType: 'image/jpeg',
+          url: '/api/media/m1/content', thumbnailUrl: '/api/media/m1/content?size=thumb' }])
       }),
     )
 
@@ -102,75 +71,74 @@ describe('MilestonesPage', () => {
     await userEvent.click(await screen.findByText('2 个月'))
     await userEvent.click(screen.getByText('你对宝宝说话或微笑时会报以微笑'))
 
-    const dialog = screen.getByRole('dialog')
-    expect(dialog.querySelector('img')).toBeNull()
-
-    const file = new File(['x'], 'photo.png', { type: 'image/png' })
-    await userEvent.upload(dialog.querySelector('input[type=file]') as HTMLInputElement, file)
+    expect(screen.getByRole('dialog').querySelector('img')).toBeNull()
+    await userEvent.upload(screen.getByTestId('media-input'),
+      new File(['x'], 'photo.png', { type: 'image/png' }))
 
     await waitFor(() => {
       expect(screen.getByRole('dialog').querySelector('img')).not.toBeNull()
     })
   })
 
-  // The photo control used to be hidden until the milestone was already achieved, so the
+  // The control used to be hidden until the milestone was already achieved, so the
   // only way to attach one was to save, reopen the dialog, and upload.
-  it('offers a photo on a milestone that has not been achieved yet', async () => {
+  it('offers attachments on a milestone that has not been achieved yet', async () => {
     renderApp(<MilestonesPage />)
     await userEvent.click(await screen.findByText('2 个月'))
     await userEvent.click(screen.getByText('你对宝宝说话或微笑时会报以微笑'))
 
-    const dialog = screen.getByRole('dialog')
-    expect(screen.getByRole('button', { name: '添加照片' })).toBeInTheDocument()
-    expect(dialog.querySelector('input[type=file]')).not.toBeNull()
+    expect(screen.getByRole('button', { name: '添加' })).toBeInTheDocument()
+    expect(screen.getByTestId('media-input')).toHaveAttribute('multiple')
   })
 
-  it('marks achieved and uploads a photo chosen beforehand, in one save', async () => {
+  it('marks achieved and uploads files chosen beforehand, in one save', async () => {
     const calls: string[] = []
     server.use(
       http.put('/api/milestones/:id/achievement', () => {
         calls.push('achievement')
-        return HttpResponse.json({ achievedOn: '2026-03-20', note: null, hasPhoto: false, photoVersion: null })
+        return HttpResponse.json({ achievedOn: '2026-03-20', note: null, media: [] })
       }),
-      http.put('/api/milestones/:id/achievement/photo', () => {
-        calls.push('photo')
-        return HttpResponse.json({ achievedOn: '2026-03-20', note: null, hasPhoto: true, photoVersion: 'v1' })
+      http.post('/api/milestones/:id/achievement/media', () => {
+        calls.push('media')
+        return HttpResponse.json([])
       }),
     )
     renderApp(<MilestonesPage />)
     await userEvent.click(await screen.findByText('2 个月'))
     await userEvent.click(screen.getByText('你对宝宝说话或微笑时会报以微笑'))
 
-    const file = new File(['x'], 'smile.png', { type: 'image/png' })
-    await userEvent.upload(screen.getByTestId('milestone-photo-input'), file)
+    await userEvent.upload(screen.getByTestId('media-input'), [
+      new File(['x'], 'smile.png', { type: 'image/png' }),
+      new File(['y'], 'clip.mp4', { type: 'video/mp4' }),
+    ])
 
-    // Held locally, shown as a preview, and flagged as pending.
+    // Held locally, previewed, and flagged as pending until the achievement exists.
     expect(screen.getByRole('dialog').querySelector('img')).not.toBeNull()
-    expect(screen.getByText('照片会在标记达成后一起保存')).toBeInTheDocument()
+    expect(screen.getByText(/2 个文件会在保存后一起上传/)).toBeInTheDocument()
     expect(calls).toEqual([])
 
     await userEvent.click(screen.getByRole('button', { name: '标记达成' }))
 
-    await waitFor(() => expect(calls).toEqual(['achievement', 'photo']))
+    await waitFor(() => expect(calls).toEqual(['achievement', 'media']))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
   it('uploads immediately when the milestone is already achieved', async () => {
     const calls: string[] = []
     server.use(
-      http.put('/api/milestones/:id/achievement/photo', () => {
-        calls.push('photo')
-        return HttpResponse.json({ achievedOn: '2026-03-01', note: null, hasPhoto: true, photoVersion: 'v1' })
+      http.post('/api/milestones/:id/achievement/media', () => {
+        calls.push('media')
+        return HttpResponse.json([])
       }),
     )
     renderApp(<MilestonesPage />)
     await userEvent.click(await screen.findByText('2 个月'))
     await userEvent.click(screen.getByText('趴着时能抬头')) // already achieved in the fixture
 
-    const file = new File(['x'], 'p.png', { type: 'image/png' })
-    await userEvent.upload(screen.getByTestId('milestone-photo-input'), file)
+    await userEvent.upload(screen.getByTestId('media-input'),
+      new File(['x'], 'p.png', { type: 'image/png' }))
 
-    await waitFor(() => expect(calls).toEqual(['photo']))
+    await waitFor(() => expect(calls).toEqual(['media']))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 

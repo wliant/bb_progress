@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  useAddMilestoneMedia,
+  useDeleteMedia,
   useMilestones,
   useRemoveMilestoneAchievement,
   useSetMilestoneAchievement,
-  useUploadMilestonePhoto,
 } from '../api/hooks'
 import { ErrorState } from '../components/ErrorState'
+import { MediaPicker, type PendingMedia } from '../features/media/MediaPicker'
 import { RequireBaby } from '../components/RequireBaby'
 import type { Baby, Milestone } from '../api/types'
 import { todaySgt } from '../lib/dates'
@@ -115,34 +117,34 @@ function MilestoneDialog({
   const { t } = useTranslation()
   const setAchievement = useSetMilestoneAchievement()
   const removeAchievement = useRemoveMilestoneAchievement()
-  const uploadPhoto = useUploadMilestonePhoto()
-  const fileInput = useRef<HTMLInputElement>(null)
+  const addMedia = useAddMilestoneMedia()
+  const removeMedia = useDeleteMedia()
 
   const [achievedOn, setAchievedOn] = useState(milestone.achievement?.achievedOn ?? todaySgt())
   const [note, setNote] = useState(milestone.achievement?.note ?? '')
-  // A photo can only be attached to an achievement that exists, so one chosen before the
+  // Attachments can only hang off an achievement that exists, so anything chosen before the
   // milestone is marked achieved is held here and uploaded as part of saving.
-  const [pendingFile, setPendingFile] = useState<File | null>(null)
-  const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+  const [pending, setPending] = useState<PendingMedia[]>([])
 
   useEffect(() => {
-    return () => {
-      if (pendingPreview) URL.revokeObjectURL(pendingPreview)
-    }
-  }, [pendingPreview])
+    return () => pending.forEach((item) => URL.revokeObjectURL(item.previewUrl))
+  }, [pending])
 
   function save() {
     setAchievement.mutate(
       { id: milestone.id, achievedOn, note: note || undefined },
       {
         onSuccess: () => {
-          if (!pendingFile) {
+          if (pending.length === 0) {
             onClose()
             return
           }
-          // The achievement now exists, so the held photo can go up. On failure the dialog
-          // stays open — it will have re-rendered with the normal upload control by then.
-          uploadPhoto.mutate({ id: milestone.id, file: pendingFile }, { onSuccess: onClose })
+          // The achievement now exists, so the held files can go up. On failure the dialog
+          // stays open — it will have re-rendered with the normal picker by then.
+          addMedia.mutate(
+            { id: milestone.id, files: pending.map((item) => item.file) },
+            { onSuccess: onClose },
+          )
         },
       },
     )
@@ -152,23 +154,18 @@ function MilestoneDialog({
     removeAchievement.mutate(milestone.id, { onSuccess: onClose })
   }
 
-  function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
+  function onAdd(files: File[]) {
     if (milestone.achievement) {
-      uploadPhoto.mutate({ id: milestone.id, file })
+      addMedia.mutate({ id: milestone.id, files })
       return
     }
-    if (pendingPreview) URL.revokeObjectURL(pendingPreview)
-    setPendingFile(file)
-    setPendingPreview(URL.createObjectURL(file))
+    setPending((current) => [
+      ...current,
+      ...files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
+    ])
   }
 
-  const shownPhoto = milestone.achievement?.hasPhoto
-    ? `/api/milestones/${milestone.id}/achievement/photo?v=${milestone.achievement.photoVersion}`
-    : pendingPreview
-  const busy = setAchievement.isPending || uploadPhoto.isPending
+  const busy = setAchievement.isPending || addMedia.isPending
 
   return (
     <div
@@ -207,32 +204,16 @@ function MilestoneDialog({
         </label>
 
         <div className="mb-3">
-          {shownPhoto && (
-            <img src={shownPhoto} alt="" className="mb-2 h-32 w-full rounded-lg object-cover" />
-          )}
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={onPhotoChange}
-            data-testid="milestone-photo-input"
+          <MediaPicker
+            media={milestone.achievement?.media ?? []}
+            onAdd={onAdd}
+            onRemove={(mediaId) => removeMedia.mutate(mediaId)}
+            pending={pending}
+            onRemovePending={(index) =>
+              setPending((current) => current.filter((_, i) => i !== index))
+            }
+            busy={addMedia.isPending}
           />
-          <button
-            type="button"
-            onClick={() => fileInput.current?.click()}
-            disabled={uploadPhoto.isPending}
-            className="text-sm font-medium text-rose-600 hover:underline disabled:opacity-50"
-          >
-            {uploadPhoto.isPending
-              ? t('care.uploading')
-              : shownPhoto
-                ? t('milestones.replacePhoto')
-                : t('milestones.addPhoto')}
-          </button>
-          {pendingFile && !milestone.achievement && (
-            <p className="mt-1 text-xs text-slate-400">{t('milestones.photoPending')}</p>
-          )}
         </div>
 
         <div className="flex gap-3">

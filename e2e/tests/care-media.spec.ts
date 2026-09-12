@@ -20,8 +20,8 @@ test('a phone-sized photo uploads and is stored under 1MB', async ({ page, reque
   await page.locator('li', { hasText: '喂奶' }).first().click()
 
   const dialog = page.getByRole('dialog')
-  await expect(dialog.getByRole('button', { name: '添加照片' })).toBeVisible()
-  await dialog.getByTestId('care-photo-input').setInputFiles({
+  await expect(dialog.getByRole('button', { name: '添加' })).toBeVisible()
+  await dialog.getByTestId('media-input').setInputFiles({
     name: 'IMG_0001.png',
     mimeType: 'image/png',
     buffer: photo,
@@ -29,18 +29,18 @@ test('a phone-sized photo uploads and is stored under 1MB', async ({ page, reque
 
   // The photo appears in the dialog without it being reopened.
   await expect(dialog.locator('img')).toBeVisible({ timeout: 20_000 })
-  await expect(dialog.getByRole('button', { name: '更换照片' })).toBeVisible()
+  
 
   // Stored copy is re-encoded to JPEG within the size budget.
   const logs = await (await request.get('/api/care-logs')).json()
-  expect(logs[0].hasPhoto).toBe(true)
-  const served = await request.get(`/api/care-logs/${logs[0].id}/photo`)
+  expect(logs[0].media).toHaveLength(1)
+  const served = await request.get(logs[0].media[0].url)
   expect(served.headers()['content-type']).toBe('image/jpeg')
   expect((await served.body()).length).toBeLessThanOrEqual(ONE_MEGABYTE)
 
   // And the list row shows a thumbnail.
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('img', { name: '照片' })).toBeVisible()
+  await expect(page.getByRole('img', { name: '照片' }).first()).toBeVisible()
 })
 
 test('a photo can be removed from the entry', async ({ page, request }) => {
@@ -48,18 +48,18 @@ test('a photo can be removed from the entry', async ({ page, request }) => {
   await page.locator('li', { hasText: '睡觉' }).first().click()
 
   const dialog = page.getByRole('dialog')
-  await dialog.getByTestId('care-photo-input').setInputFiles({
+  await dialog.getByTestId('media-input').setInputFiles({
     name: 'small.png',
     mimeType: 'image/png',
     buffer: noisyPng(80, 60),
   })
   await expect(dialog.locator('img')).toBeVisible()
 
-  await dialog.getByRole('button', { name: '删除照片' }).click()
+  await dialog.getByRole('button', { name: '移除' }).first().click()
   await expect(dialog.locator('img')).toHaveCount(0)
 
   const logs = await (await request.get('/api/care-logs')).json()
-  expect(logs[0].hasPhoto).toBe(false)
+  expect(logs[0].media).toHaveLength(0)
 })
 
 test('the profile photo keeps its original bytes', async ({ page, request }) => {

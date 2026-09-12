@@ -117,16 +117,23 @@ check with `docker compose exec app ls -l /app/app.jar` if behaviour looks uncha
   means real AWS, a URL means MinIO, which is what compose runs. Blank credentials fall back to the
   AWS default chain so IAM roles work. Objects are streamed through the API rather than exposed
   directly, keeping URLs, ETags and the error contract in one place.
-- Uploads accept 25 MB (Spring `max-file-size`), nginx allows 32 MB so the app answers oversized
-  uploads itself, and nginx's own 413 returns the same coded JSON. Care-log and milestone photos go
-  through `storeCompressed` (re-encoded to JPEG ≤1 MB, EXIF orientation applied); the **profile
-  photo alone** uses `store` and keeps the original bytes. Tests that upload must use real image
-  bytes — the compressor decodes them. `?size=thumb` serves a ≤320 px sibling object, created on
-  first request and deleted with the original; the size is part of the ETag, or a cached full image
-  would answer a thumbnail request.
+- **Attachments are a `media` table**, many per care-log entry or milestone achievement, with
+  exactly one owner each (DB check constraint). Kind is decided from the upload's content type:
+  `PHOTO` goes through `storeCompressed` (JPEG ≤1 MB, EXIF orientation applied) while `VIDEO` and
+  `AUDIO` use `storeAs` and are kept byte-for-byte — there is no transcoder, so **only photos have
+  thumbnails**. The **profile photo** remains a single image on `baby.photo_path`, stored at
+  original quality. Tests that upload a photo must use real image bytes — the compressor decodes
+  them; video and audio are never decoded so any bytes will do.
+- Uploads accept 200 MB (Spring `max-file-size`) for phone video; nginx allows 240 MB so the app
+  answers oversized uploads itself, and nginx's own 413 returns the same coded JSON. `?size=thumb`
+  serves a ≤320 px sibling object, created on first request and deleted with the original; the size
+  is part of the ETag, or a cached full image would answer a thumbnail request.
+- Rows cascade with their owner in the database, but **stored objects never do** — every delete path
+  must enumerate the media and remove the objects explicitly before the rows go.
 - Integration tests run against **real MinIO**, not a mock. It is a singleton `GenericContainer` in
   `TestcontainersConfiguration` rather than a bean, because `PostgreSQLContainer` is also a
   `GenericContainer` and injecting one by type is ambiguous.
-- **The photo gallery owns no data**: `/api/photos` is a read-only view over care-log, milestone and
-  profile photos. Adding or removing a photo happens on its own entry, so any mutation that touches
-  a photo must also invalidate the `['photos']` query.
+- **The media gallery owns no data**: `/api/media` is a read-only view over care-log, milestone and
+  profile media. Adding or removing happens on the owning entry, so any mutation touching an
+  attachment must invalidate `['care-logs']`, `['milestones']` and `['media']` together — see
+  `invalidateMedia` in `web/src/api/hooks.ts`.

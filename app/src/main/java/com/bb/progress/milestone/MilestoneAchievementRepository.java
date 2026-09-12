@@ -15,8 +15,6 @@ public interface MilestoneAchievementRepository extends JpaRepository<MilestoneA
 
     Optional<MilestoneAchievement> findFirstByOrderByAchievedOnAsc();
 
-    List<MilestoneAchievement> findAllByPhotoPathIsNotNull();
-
     /**
      * Race-safe check-off: two taps on "mark achieved" both settle on the same end state
      * instead of one losing to the unique constraint. Leaves photo_path untouched.

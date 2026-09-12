@@ -8,7 +8,7 @@
     "growth": "Growth",
     "milestones": "Milestones",
     "care": "Care",
-    "photos": "Photos"
+    "media": "Media"
   },
   "common": {
     "save": "Save",
@@ -53,7 +53,9 @@
     "UNKNOWN": "Something went wrong, please try again",
     "IMAGE_UNREADABLE": "That image couldn't be read — try a JPEG or PNG",
     "GESTATIONAL_AGE_NOT_SET": "Gestational age at birth has not been recorded",
-    "BIRTH_MEASUREMENTS_NOT_SET": "No birth measurements recorded yet"
+    "BIRTH_MEASUREMENTS_NOT_SET": "No birth measurements recorded yet",
+    "UNSUPPORTED_MEDIA_TYPE": "Only photos, videos and voice recordings are supported",
+    "MEDIA_NOT_FOUND": "That attachment no longer exists"
   },
   "profile": {
     "title": "Baby Profile",
@@ -113,12 +115,7 @@
       "LANGUAGE": "Language/Communication",
       "COGNITIVE": "Cognitive",
       "MOTOR": "Movement/Physical"
-    },
-    "photo": "Photo",
-    "uploadPhoto": "Upload photo",
-    "addPhoto": "Add photo",
-    "replacePhoto": "Replace photo",
-    "photoPending": "The photo is saved when you mark this achieved"
+    }
   },
   "care": {
     "title": "Daily Care",
@@ -135,13 +132,7 @@
       "FEEDING": "e.g. 150ml or left side 10 min",
       "SLEEP": "e.g. nap, 1 hour",
       "DIAPER": "e.g. wet / dirty"
-    },
-    "photo": "Photo",
-    "addPhoto": "Add photo",
-    "replacePhoto": "Replace photo",
-    "removePhoto": "Remove photo",
-    "uploading": "Uploading…",
-    "photoHint": "JPEG, PNG or WebP up to 25MB; compressed to under 1MB on save."
+    }
   },
   "home": {
     "welcome": "Welcome back",
@@ -164,13 +155,24 @@
     "disclaimer": "Shows position on the reference population only — not a clinical assessment. Discuss with your paediatrician.",
     "outOfRange": "This gestational age (under 33 weeks) is outside the standard bundled here. INTERGROWTH-21st publishes a separate Very Preterm standard, which this app does not include."
   },
-  "photos": {
-    "title": "Photos",
-    "count": "{{count}} photos",
+  "media": {
+    "title": "Media",
+    "count": "{{count}} items",
     "profilePhoto": "Profile photo",
-    "empty": "No photos yet",
-    "emptyHint": "Photos added to a care entry or a milestone show up here automatically.",
+    "empty": "Nothing here yet",
+    "emptyHint": "Photos, videos and voice notes added to a care entry or a milestone show up here automatically.",
     "openEntry": "Open entry",
-    "noDate": "No date"
+    "noDate": "No date",
+    "attachments": "Photos / videos / voice",
+    "add": "Add",
+    "uploading": "Uploading…",
+    "remove": "Remove",
+    "pending": "{{count}} file(s) will be uploaded when you save",
+    "hint": "Pick several at once. Photos, video and voice up to 200MB each; photos are compressed to under 1MB.",
+    "kind": {
+      "PHOTO": "Photo",
+      "VIDEO": "Video",
+      "AUDIO": "Voice"
+    }
   }
 }

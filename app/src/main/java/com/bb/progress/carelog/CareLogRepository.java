@@ -12,6 +12,4 @@ public interface CareLogRepository extends JpaRepository<CareLog, UUID> {
 
     List<CareLog> findAllByTypeAndLoggedAtGreaterThanEqualAndLoggedAtLessThanOrderByLoggedAtDesc(
             CareType type, Instant fromInclusive, Instant toExclusive);
-
-    List<CareLog> findAllByPhotoPathIsNotNullOrderByLoggedAtDesc();
 }

@@ -2,17 +2,18 @@ package com.bb.progress.carelog;
 
 import com.bb.progress.baby.BabyService;
 import com.bb.progress.carelog.CareLogDtos.CareLogCreateRequest;
+import com.bb.progress.carelog.CareLogDtos.CareLogResponse;
 import com.bb.progress.carelog.CareLogDtos.CareLogUpdateRequest;
 import com.bb.progress.common.ApiException;
 import com.bb.progress.common.Sgt;
-import com.bb.progress.photo.ImageCompressor;
-import com.bb.progress.photo.PhotoStorageService;
+import com.bb.progress.media.Media;
+import com.bb.progress.media.MediaService;
 import java.time.Instant;
-import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,84 +22,70 @@ public class CareLogService {
 
     private final CareLogRepository repository;
     private final BabyService babyService;
-    private final PhotoStorageService photoStorage;
+    private final MediaService mediaService;
 
     public CareLogService(CareLogRepository repository, BabyService babyService,
-            PhotoStorageService photoStorage) {
+            MediaService mediaService) {
         this.repository = repository;
         this.babyService = babyService;
-        this.photoStorage = photoStorage;
+        this.mediaService = mediaService;
     }
 
     /** Lists entries for the given SGT calendar date (default: today in SGT). */
     @Transactional(readOnly = true)
-    public List<CareLog> findByDay(LocalDate date, CareType type) {
+    public List<CareLogResponse> findByDay(LocalDate date, CareType type) {
         LocalDate day = date != null ? date : Sgt.today();
         Instant from = day.atStartOfDay(Sgt.ZONE).toInstant();
         Instant to = day.plusDays(1).atStartOfDay(Sgt.ZONE).toInstant();
-        return type == null
+        List<CareLog> logs = type == null
                 ? repository.findAllByLoggedAtGreaterThanEqualAndLoggedAtLessThanOrderByLoggedAtDesc(from, to)
                 : repository.findAllByTypeAndLoggedAtGreaterThanEqualAndLoggedAtLessThanOrderByLoggedAtDesc(
                         type, from, to);
+        // One query for every entry's attachments rather than one per entry.
+        Map<UUID, List<Media>> byLog = mediaService
+                .forCareLogs(logs.stream().map(CareLog::getId).toList()).stream()
+                .collect(Collectors.groupingBy(Media::getCareLogId));
+        return logs.stream()
+                .map(log -> CareLogResponse.from(log,
+                        MediaService.views(byLog.getOrDefault(log.getId(), List.of()))))
+                .toList();
     }
 
     @Transactional
-    public CareLog create(CareLogCreateRequest request) {
+    public CareLogResponse create(CareLogCreateRequest request) {
         // Same precondition as growth records and milestones: a profile must exist first.
         babyService.get();
         Instant loggedAt = request.loggedAt() != null ? request.loggedAt().toInstant() : Instant.now();
         requireNotFuture(loggedAt);
-        return repository.save(new CareLog(request.type(), loggedAt, request.note()));
+        CareLog saved = repository.save(new CareLog(request.type(), loggedAt, request.note()));
+        return CareLogResponse.from(saved, List.of());
     }
 
     @Transactional
-    public CareLog update(UUID id, CareLogUpdateRequest request) {
+    public CareLogResponse update(UUID id, CareLogUpdateRequest request) {
         CareLog log = require(id);
         Instant loggedAt = request.loggedAt().toInstant();
         requireNotFuture(loggedAt);
         log.setLoggedAt(loggedAt);
         log.setNote(request.note());
-        return repository.save(log);
+        return withMedia(repository.save(log));
     }
 
     @Transactional
     public void delete(UUID id) {
         CareLog log = require(id);
+        // The rows cascade with the entry, but the stored objects have to go explicitly.
+        mediaService.deleteObjectsFor(mediaService.forCareLog(id));
         repository.delete(log);
-        photoStorage.deleteIfExists(log.getPhotoPath());
-    }
-
-    /** Photos on log entries are re-encoded to stay small; only the profile photo keeps its original. */
-    @Transactional
-    public CareLog updatePhoto(UUID id, MultipartFile file) {
-        CareLog log = require(id);
-        String oldPath = log.getPhotoPath();
-        log.setPhotoPath(photoStorage.storeCompressed("care-logs", file, ImageCompressor.ONE_MEGABYTE));
-        CareLog saved = repository.save(log);
-        photoStorage.deleteIfExists(oldPath);
-        return saved;
-    }
-
-    @Transactional
-    public CareLog removePhoto(UUID id) {
-        CareLog log = require(id);
-        String oldPath = log.getPhotoPath();
-        log.setPhotoPath(null);
-        CareLog saved = repository.save(log);
-        photoStorage.deleteIfExists(oldPath);
-        return saved;
     }
 
     @Transactional(readOnly = true)
-    public String getPhotoPath(UUID id) {
-        String path = require(id).getPhotoPath();
-        if (path == null) {
-            throw ApiException.notFound("PHOTO_NOT_FOUND", "No photo on this entry");
-        }
-        return path;
+    public CareLogResponse withMedia(CareLog log) {
+        return CareLogResponse.from(log, MediaService.views(mediaService.forCareLog(log.getId())));
     }
 
-    private CareLog require(UUID id) {
+    @Transactional(readOnly = true)
+    public CareLog require(UUID id) {
         return repository.findById(id)
                 .orElseThrow(() -> ApiException.notFound("CARE_LOG_NOT_FOUND", "Care log not found"));
     }

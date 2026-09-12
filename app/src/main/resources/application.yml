@@ -17,9 +17,10 @@ spring:
     time-zone: Asia/Singapore
   servlet:
     multipart:
-      # Accept a photo straight off a phone; log photos are re-encoded to <=1MB on save.
-      max-file-size: 25MB
-      max-request-size: 30MB
+      # Large enough for a phone video, which is stored as-is; photos are still
+      # re-encoded to <=1MB on save.
+      max-file-size: 200MB
+      max-request-size: 220MB
 
 app:
   # Photo bytes live in S3-compatible object storage. Leave `endpoint` blank to use real AWS S3;
