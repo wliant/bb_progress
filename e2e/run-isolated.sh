@@ -10,7 +10,7 @@ set -uo pipefail
 E2E_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$E2E_DIR")"
 
-export COMPOSE_PROJECT_NAME="${E2E_PROJECT_NAME:-bbprogress-e2e}"
+export INSTANCE="${E2E_INSTANCE:-bbprogress-e2e}"
 export APP_PORT="${E2E_APP_PORT:-8099}"
 export DB_NAME=bb
 export DB_USER=bb
@@ -24,12 +24,19 @@ export S3_REGION=us-east-1
 
 cleanup() {
   (cd "$ROOT" && docker compose down -v >/dev/null 2>&1)
+  (cd "$ROOT" && docker compose -f docker-compose.infra.yml down -v >/dev/null 2>&1)
 }
 trap cleanup EXIT
 
-echo "Starting throwaway stack '$COMPOSE_PROJECT_NAME' on port ${APP_PORT}..."
+echo "Starting throwaway stack '$INSTANCE' on port ${APP_PORT}..."
+# Infrastructure first, and waited for: the app stack is a separate compose project
+# so it cannot depend on these, and starting it early only makes it restart until ready.
+if ! (cd "$ROOT" && docker compose -f docker-compose.infra.yml up -d --wait); then
+  echo "Failed to start the e2e infrastructure" >&2
+  exit 1
+fi
 if ! (cd "$ROOT" && docker compose up -d --build --force-recreate); then
-  echo "Failed to start the e2e stack" >&2
+  echo "Failed to start the e2e application stack" >&2
   exit 1
 fi
 
@@ -47,5 +54,5 @@ cd "$E2E_DIR"
 E2E_BASE_URL="http://localhost:$APP_PORT" npx playwright test "$@"
 status=$?
 
-echo "Tearing down ${COMPOSE_PROJECT_NAME}..."
+echo "Tearing down ${INSTANCE}..."
 exit $status

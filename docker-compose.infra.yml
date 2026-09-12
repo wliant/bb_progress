@@ -1,0 +1,61 @@
+# Infrastructure: the stateful services, with a lifecycle of their own.
+# Bring this up once and leave it running; the application stack in
+# docker-compose.yml can then be rebuilt and recreated freely without
+# bouncing the database or the object store.
+#
+#   docker compose -f docker-compose.infra.yml up -d --wait
+#
+# Its own project name keeps it separate from the application stack, so a
+# `docker compose up` on one never treats the other's containers as orphans.
+# Both names derive from INSTANCE in .env; COMPOSE_PROJECT_NAME is deliberately
+# not used, because as an environment variable it would override `name:` here
+# and collapse the two stacks back into one project.
+name: ${INSTANCE:-bbprogress}-infra
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: ${TZ:-Asia/Singapore}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  minio:
+    # S3-compatible object storage so the stack needs no AWS account and works offline.
+    # Point the app at real AWS S3 instead by clearing S3_ENDPOINT in .env.
+    image: minio/minio:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    volumes:
+      - photo-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  # Named after the instance, not this file's project, so the volumes that existed
+  # before the infrastructure was split out are reused rather than stranded.
+  db-data:
+    name: ${INSTANCE:-bbprogress}_db-data
+  photo-data:
+    name: ${INSTANCE:-bbprogress}_photo-data
+
+networks:
+  # Named after the instance so two stacks on one machine never share a network,
+  # and joined by the application stack as an external network.
+  default:
+    name: ${INSTANCE:-bbprogress}-net

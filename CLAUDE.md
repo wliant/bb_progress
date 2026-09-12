@@ -16,7 +16,7 @@ Baby development monitoring app for a single baby, personal use.
 
 - **Dual language**: every user-facing feature must support both Chinese and English (i18n from the start, not retrofitted).
 - **Timezone**: use SGT (Asia/Singapore, UTC+8) by default everywhere — storage, display, and defaults.
-- **Deployment**: docker compose based development, single compose file. Externalize key properties (ports, credentials, instance names) into a `.env` file. Multiple instances of the compose stack must be able to run on the same machine — so no hardcoded ports, container names, volume names, or network names; derive them from `.env` (e.g. `COMPOSE_PROJECT_NAME` + port variables).
+- **Deployment**: docker compose based development. Externalize key properties (ports, credentials, instance names) into a `.env` file. Multiple instances of the compose stack must be able to run on the same machine — so no hardcoded ports, container names, volume names, or network names; derive them from `.env` (e.g. `COMPOSE_PROJECT_NAME` + port variables).
 - **Testing**: full test pyramid. Unit tests and integration tests live inside `app/` and `web/` respectively; e2e tests are a separate project.
 - **Spec-driven development**: write a spec before implementing a feature. Specs live in `specs/`, one file per feature (e.g. `specs/<feature-name>.md`), covering the requirements, behavior, and acceptance criteria. Implementation and tests follow the spec; if the design changes during implementation, update the spec to match.
 
@@ -63,10 +63,14 @@ npm run test:isolated tests/growth.spec.ts   # single spec, same isolation
 npm test                          # against an already-running stack — DESTRUCTIVE, see below
 npx playwright test tests/growth.spec.ts     # single spec
 
-# stack (repo root; needs .env — copy from .env.example)
-docker compose up -d --build --force-recreate     # see note below: --force-recreate is required
-docker compose --env-file .env.instance2 up -d --build --force-recreate   # second instance
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db  # Postgres only, published on :5433 for native dev
+# stack (repo root; needs .env — copy from .env.example). Two compose projects:
+#   docker-compose.infra.yml -> <INSTANCE>-infra : postgres + minio, long-lived
+#   docker-compose.yml       -> <INSTANCE>       : app + web, recreated freely
+docker compose -f docker-compose.infra.yml up -d --wait   # infrastructure FIRST
+docker compose up -d --build --force-recreate             # then the application
+docker compose --env-file .env.instance2 -f docker-compose.infra.yml up -d --wait  # 2nd instance
+docker compose --env-file .env.instance2 up -d --build --force-recreate
+docker compose -f docker-compose.infra.yml -f docker-compose.dev.yml up -d --wait  # publish db/minio for native dev
 curl -X DELETE http://localhost:8090/api/baby     # wipe profile + all records (not exposed in the UI)
 ```
 
@@ -80,6 +84,15 @@ first-run state. Never point them at an instance holding real data. `e2e/run-iso
 (`npm run test:isolated`) brings up a separate `bbprogress-e2e` stack on its own port, runs the
 suite there, and tears it down with its volumes, which is what the multi-instance requirement
 exists for.
+
+**The stacks are split and `depends_on` does not cross compose projects.** Start
+`docker-compose.infra.yml` with `--wait` before the application stack. The app carries
+`restart: unless-stopped` so it recovers on its own if infrastructure appears late, and `web`
+depends on the app only being *started*, not healthy — otherwise the UI would not come up at all
+while the backend waits. Project, network and volume names derive from `INSTANCE` in `.env`; do
+not use `COMPOSE_PROJECT_NAME`, which as an environment variable overrides each file's `name:` and
+merges the two stacks into one project. Volume names are pinned to the pre-split names so the data
+that existed before the split is reused rather than stranded.
 
 **`docker compose up -d --build` can leave the old container running** even after it rebuilds
 the image, so verification silently tests stale code. Always add `--force-recreate`, and sanity

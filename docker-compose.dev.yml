@@ -1,6 +1,7 @@
-# Dev override: publishes Postgres so `./gradlew bootRun` and `npm run dev`
-# can run natively against it.
-#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
+# Dev override for the infrastructure stack: publishes Postgres and MinIO to the
+# host so `./gradlew bootRun` and `npm run dev` can run natively against them.
+#
+#   docker compose -f docker-compose.infra.yml -f docker-compose.dev.yml up -d --wait
 services:
   db:
     ports:
