@@ -9,6 +9,8 @@ export interface Baby {
   /** ISO local time from the API, e.g. "14:30:00"; null when not recorded. */
   timeOfBirth: string | null
   gender: Gender
+  /** Gestation at delivery in days; null when not recorded. */
+  gestationalAgeDays: number | null
   hasPhoto: boolean
   /** Changes whenever the photo is replaced; used to bust the browser's image cache. */
   photoVersion: string | null
@@ -22,6 +24,7 @@ export interface BabyInput {
   dateOfBirth: string
   timeOfBirth?: string | null
   gender: Gender
+  gestationalAgeDays?: number | null
   birthWeightKg?: number | null
   birthLengthCm?: number | null
   birthHeadCircumferenceCm?: number | null
@@ -91,4 +94,19 @@ export interface ApiErrorBody {
   code: string
   message: string
   fieldErrors?: { field: string; code: string; message: string }[]
+}
+
+export interface NewbornAssessmentItem {
+  measure: GrowthMeasure
+  value: number
+  centile: number
+  zScore: number
+}
+
+export interface NewbornAssessment {
+  gestationalAgeDays: number
+  standard: string
+  /** False when the gestational age falls outside the bundled standard's range. */
+  covered: boolean
+  assessments: NewbornAssessmentItem[]
 }

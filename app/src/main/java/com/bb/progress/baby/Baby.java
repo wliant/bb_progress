@@ -30,6 +30,10 @@ public class Baby {
     @Column(name = "time_of_birth")
     private LocalTime timeOfBirth;
 
+    /** Gestation at delivery in days; makes the birth measurements interpretable. */
+    @Column(name = "gestational_age_days")
+    private Integer gestationalAgeDays;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Gender gender;
@@ -90,6 +94,14 @@ public class Baby {
 
     public void setTimeOfBirth(LocalTime timeOfBirth) {
         this.timeOfBirth = timeOfBirth;
+    }
+
+    public Integer getGestationalAgeDays() {
+        return gestationalAgeDays;
+    }
+
+    public void setGestationalAgeDays(Integer gestationalAgeDays) {
+        this.gestationalAgeDays = gestationalAgeDays;
     }
 
     public Gender getGender() {

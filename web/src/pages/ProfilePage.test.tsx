@@ -72,6 +72,52 @@ describe('ProfilePage', () => {
     })
   })
 
+  it('loads gestational age split into weeks and days', async () => {
+    renderApp(<ProfilePage />)
+    expect(await screen.findByLabelText('孕周（周）')).toHaveValue(40)
+    expect(screen.getByLabelText('孕周（天）')).toHaveValue(0)
+  })
+
+  it('submits gestational age as a single day count', async () => {
+    const sent = vi.fn()
+    server.use(
+      http.put('/api/baby', async ({ request }) => {
+        const body = await request.json()
+        sent(body)
+        return HttpResponse.json({ ...testBaby, ...(body as object) })
+      }),
+    )
+    renderApp(<ProfilePage />)
+    await screen.findByLabelText('姓名')
+
+    await userEvent.clear(screen.getByLabelText('孕周（周）'))
+    await userEvent.type(screen.getByLabelText('孕周（周）'), '38')
+    await userEvent.clear(screen.getByLabelText('孕周（天）'))
+    await userEvent.type(screen.getByLabelText('孕周（天）'), '4')
+    await userEvent.click(screen.getByRole('button', { name: '保存' }))
+
+    await waitFor(() => expect(sent).toHaveBeenCalled())
+    expect(sent.mock.calls[0][0]).toMatchObject({ gestationalAgeDays: 38 * 7 + 4 })
+  })
+
+  it('sends null when gestational age is cleared', async () => {
+    const sent = vi.fn()
+    server.use(
+      http.put('/api/baby', async ({ request }) => {
+        const body = await request.json()
+        sent(body)
+        return HttpResponse.json({ ...testBaby, ...(body as object) })
+      }),
+    )
+    renderApp(<ProfilePage />)
+    await screen.findByLabelText('姓名')
+    await userEvent.clear(screen.getByLabelText('孕周（周）'))
+    await userEvent.click(screen.getByRole('button', { name: '保存' }))
+
+    await waitFor(() => expect(sent).toHaveBeenCalled())
+    expect(sent.mock.calls[0][0]).toMatchObject({ gestationalAgeDays: null })
+  })
+
   it('reports a rejected date-of-birth change', async () => {
     server.use(http.put('/api/baby', () => apiError(400, 'DOB_AFTER_RECORDS')))
     renderApp(<ProfilePage />)

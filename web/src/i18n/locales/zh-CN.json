@@ -50,7 +50,9 @@
     "INTERNAL_ERROR": "服务器出错了，请稍后重试",
     "NETWORK": "无法连接到服务器，请检查网络",
     "UNKNOWN": "出错了，请重试",
-    "IMAGE_UNREADABLE": "无法读取这张图片，请换一张 JPEG 或 PNG"
+    "IMAGE_UNREADABLE": "无法读取这张图片，请换一张 JPEG 或 PNG",
+    "GESTATIONAL_AGE_NOT_SET": "还没有填写出生孕周",
+    "BIRTH_MEASUREMENTS_NOT_SET": "还没有填写出生时的测量值"
   },
   "profile": {
     "title": "宝宝档案",
@@ -69,7 +71,13 @@
     "timeOfBirth": "出生时间",
     "birthMeasurements": "出生时测量",
     "birthMeasurementsHint": "选填。填写后会作为生长曲线的第一个数据点。",
-    "birthLength": "身长"
+    "birthLength": "身长",
+    "gestationalAge": "出生孕周",
+    "gestationalWeeks": "孕周（周）",
+    "gestationalDays": "孕周（天）",
+    "weeks": "周",
+    "days": "天",
+    "gestationalAgeHint": "选填。填写后可对照 INTERGROWTH-21st 新生儿标准评估出生时的体格。"
   },
   "growth": {
     "title": "生长曲线",
@@ -143,5 +151,13 @@
     "label": "语言",
     "zh": "中文",
     "en": "English"
+  },
+  "newborn": {
+    "title": "出生体格评估",
+    "atGestation": "孕 {{ga}} 周",
+    "centile": "第 {{centile}} 百分位",
+    "source": "参考标准：{{standard}}（Villar 等，Lancet 2014）",
+    "disclaimer": "仅显示在参考人群中的位置，不作临床判断。请与儿科医生讨论。",
+    "outOfRange": "该孕周（<33 周）不在本应用内置的标准范围内。INTERGROWTH-21st 另有极早产儿标准，本应用未收录。"
   }
 }

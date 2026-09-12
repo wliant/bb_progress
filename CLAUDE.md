@@ -35,6 +35,11 @@ After completing each feature:
 - `web/`: React 19 + Vite + TypeScript, Tailwind CSS v4, TanStack Query, react-i18next (default `zh-CN`), Recharts, Vitest + Testing Library + MSW.
 - `e2e/`: Playwright, desktop + mobile (Pixel 7) projects, runs against the compose stack.
 - WHO growth-standard LMS data lives in `app/src/main/resources/who/` (generated from official WHO tables — do not hand-edit); CDC milestone seed data in the Flyway migration `V4__seed_milestone_definitions.sql`.
+- INTERGROWTH-21st newborn size parameters live in `app/src/main/resources/ig21/` (skew-t mu/sigma/nu/tau
+  per gestational day, from the project's published workbooks). Two standards are deliberately kept
+  apart: **WHO** answers *growth since birth* (x-axis = age in months) and **INTERGROWTH-21st** answers
+  *size at birth* (x-axis = gestational age). Never merge them onto one chart. The bundled newborn range
+  is 33+0–42+6 weeks; the Very Preterm standard below that is a separate publication and is not included.
 
 ## Commands
 

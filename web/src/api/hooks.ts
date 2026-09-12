@@ -12,6 +12,7 @@ import type {
   GrowthStandards,
   MilestoneAchievement,
   MilestoneAgeGroup,
+  NewbornAssessment,
 } from './types'
 
 export function useBaby() {
@@ -32,7 +33,12 @@ export function useSaveBaby() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (baby: BabyInput) => apiSend<Baby>('PUT', '/api/baby', baby),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['baby'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['baby'] })
+      // Birth measurements and gestational age both feed the newborn assessment.
+      queryClient.invalidateQueries({ queryKey: ['newborn-assessment'] })
+      queryClient.invalidateQueries({ queryKey: ['growth-records'] })
+    },
   })
 }
 
@@ -57,6 +63,26 @@ export function useGrowthStandards(gender: Gender | undefined, measure: GrowthMe
     queryFn: () => apiGet(`/api/growth-standards?gender=${gender}&measure=${measure}`),
     enabled: gender !== undefined,
     staleTime: Infinity,
+  })
+}
+
+/** Null when the profile lacks a gestational age or birth measurements. */
+export function useNewbornAssessment() {
+  return useQuery<NewbornAssessment | null>({
+    queryKey: ['newborn-assessment'],
+    queryFn: async () => {
+      try {
+        return await apiGet<NewbornAssessment>('/api/newborn-assessment')
+      } catch (e) {
+        if (
+          e instanceof ApiError &&
+          ['GESTATIONAL_AGE_NOT_SET', 'BIRTH_MEASUREMENTS_NOT_SET', 'BABY_NOT_FOUND'].includes(e.code)
+        ) {
+          return null
+        }
+        throw e
+      }
+    },
   })
 }
 

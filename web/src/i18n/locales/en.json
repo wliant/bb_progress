@@ -50,7 +50,9 @@
     "INTERNAL_ERROR": "Server error — please try again shortly",
     "NETWORK": "Can't reach the server — check your connection",
     "UNKNOWN": "Something went wrong, please try again",
-    "IMAGE_UNREADABLE": "That image couldn't be read — try a JPEG or PNG"
+    "IMAGE_UNREADABLE": "That image couldn't be read — try a JPEG or PNG",
+    "GESTATIONAL_AGE_NOT_SET": "Gestational age at birth has not been recorded",
+    "BIRTH_MEASUREMENTS_NOT_SET": "No birth measurements recorded yet"
   },
   "profile": {
     "title": "Baby Profile",
@@ -69,7 +71,13 @@
     "timeOfBirth": "Time of birth",
     "birthMeasurements": "Measurements at birth",
     "birthMeasurementsHint": "Optional. These become the first point on the growth chart.",
-    "birthLength": "Length"
+    "birthLength": "Length",
+    "gestationalAge": "Gestational age at birth",
+    "gestationalWeeks": "Gestational age weeks",
+    "gestationalDays": "Gestational age days",
+    "weeks": "weeks",
+    "days": "days",
+    "gestationalAgeHint": "Optional. Lets the birth measurements be compared against the INTERGROWTH-21st newborn standards."
   },
   "growth": {
     "title": "Growth",
@@ -143,5 +151,13 @@
     "label": "Language",
     "zh": "中文",
     "en": "English"
+  },
+  "newborn": {
+    "title": "Size at birth",
+    "atGestation": "at {{ga}} weeks",
+    "centile": "Centile {{centile}}",
+    "source": "Reference: {{standard}} (Villar et al., Lancet 2014)",
+    "disclaimer": "Shows position on the reference population only — not a clinical assessment. Discuss with your paediatrician.",
+    "outOfRange": "This gestational age (under 33 weeks) is outside the standard bundled here. INTERGROWTH-21st publishes a separate Very Preterm standard, which this app does not include."
   }
 }

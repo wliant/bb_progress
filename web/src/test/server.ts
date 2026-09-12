@@ -7,6 +7,7 @@ export const testBaby: Baby = {
   dateOfBirth: '2026-01-15',
   gender: 'FEMALE',
   timeOfBirth: '14:30:00',
+  gestationalAgeDays: 280,
   hasPhoto: false,
   photoVersion: null,
   birthWeightKg: 3.25,
@@ -71,6 +72,17 @@ export const testMilestones: MilestoneAgeGroup[] = [
   },
 ]
 
+export const testNewbornAssessment = {
+  gestationalAgeDays: 280,
+  standard: 'INTERGROWTH-21st Newborn Size Standards',
+  covered: true,
+  assessments: [
+    { measure: 'WEIGHT' as const, value: 3.25, centile: 42.1, zScore: -0.2 },
+    { measure: 'HEIGHT' as const, value: 49.5, centile: 38.4, zScore: -0.29 },
+    { measure: 'HEAD_CIRCUMFERENCE' as const, value: 34.0, centile: 45.3, zScore: -0.12 },
+  ],
+}
+
 export const testCareLogs: CareLog[] = [
   { id: 'c1', type: 'FEEDING', loggedAt: '2026-05-10T09:30:00+08:00', note: '150ml', hasPhoto: false, photoVersion: null },
 ]
@@ -85,6 +97,7 @@ export const handlers = [
   http.get('/api/growth-records', () => HttpResponse.json(testGrowthRecords)),
   http.get('/api/growth-standards', () => HttpResponse.json(testStandards)),
   http.get('/api/milestones', () => HttpResponse.json(testMilestones)),
+  http.get('/api/newborn-assessment', () => HttpResponse.json(testNewbornAssessment)),
   http.get('/api/care-logs', () => HttpResponse.json(testCareLogs)),
 ]
 

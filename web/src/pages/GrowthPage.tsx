@@ -10,6 +10,7 @@ import { ErrorState } from '../components/ErrorState'
 import { RequireBaby } from '../components/RequireBaby'
 import type { Baby, GrowthMeasure, GrowthRecord } from '../api/types'
 import { GrowthChart } from '../features/growth/GrowthChart'
+import { NewbornAssessmentCard } from '../features/growth/NewbornAssessmentCard'
 import { todaySgt } from '../lib/dates'
 
 const MEASURES: { key: GrowthMeasure; labelKey: string; unitKey: string }[] = [
@@ -114,6 +115,8 @@ function GrowthContent({ baby }: { baby: Baby }) {
           </button>
         ))}
       </div>
+
+      <NewbornAssessmentCard />
 
       <section className="rounded-2xl bg-white p-4 shadow-sm">
         <GrowthChart

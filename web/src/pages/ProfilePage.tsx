@@ -10,6 +10,8 @@ interface FormState {
   dateOfBirth: string
   timeOfBirth: string
   gender: Gender
+  gestationalWeeks: string
+  gestationalDays: string
   birthWeightKg: string
   birthLengthCm: string
   birthHeadCircumferenceCm: string
@@ -20,6 +22,8 @@ const EMPTY: FormState = {
   dateOfBirth: '',
   timeOfBirth: '',
   gender: 'FEMALE',
+  gestationalWeeks: '',
+  gestationalDays: '',
   birthWeightKg: '',
   birthLengthCm: '',
   birthHeadCircumferenceCm: '',
@@ -45,6 +49,8 @@ export function ProfilePage() {
         // The API sends ISO local time ("14:30:00"); <input type="time"> wants HH:mm.
         timeOfBirth: baby.timeOfBirth?.slice(0, 5) ?? '',
         gender: baby.gender,
+        gestationalWeeks: baby.gestationalAgeDays ? String(Math.floor(baby.gestationalAgeDays / 7)) : '',
+        gestationalDays: baby.gestationalAgeDays ? String(baby.gestationalAgeDays % 7) : '',
         birthWeightKg: baby.birthWeightKg?.toString() ?? '',
         birthLengthCm: baby.birthLengthCm?.toString() ?? '',
         birthHeadCircumferenceCm: baby.birthHeadCircumferenceCm?.toString() ?? '',
@@ -66,6 +72,11 @@ export function ProfilePage() {
         dateOfBirth: form.dateOfBirth,
         timeOfBirth: form.timeOfBirth || null,
         gender: form.gender,
+        // Weeks and days are entered separately but stored as a single day count.
+        gestationalAgeDays:
+          form.gestationalWeeks === ''
+            ? null
+            : Number(form.gestationalWeeks) * 7 + Number(form.gestationalDays || 0),
         birthWeightKg: numberOrNull(form.birthWeightKg),
         birthLengthCm: numberOrNull(form.birthLengthCm),
         birthHeadCircumferenceCm: numberOrNull(form.birthHeadCircumferenceCm),
@@ -188,6 +199,29 @@ export function ProfilePage() {
             {t('profile.birthMeasurements')}
           </legend>
           <p className="mb-3 text-xs text-slate-400">{t('profile.birthMeasurementsHint')}</p>
+
+          <div className="mb-4">
+            <p className="mb-1 text-xs font-medium text-slate-600">{t('profile.gestationalAge')}</p>
+            <div className="flex items-center gap-2">
+              <input
+                type="number" min="22" max="45" placeholder="40"
+                aria-label={t('profile.gestationalWeeks')}
+                value={form.gestationalWeeks}
+                onChange={(e) => set('gestationalWeeks', e.target.value)}
+                className="w-20 rounded-lg border border-slate-300 px-2 py-2 text-base"
+              />
+              <span className="text-sm text-slate-500">{t('profile.weeks')}</span>
+              <input
+                type="number" min="0" max="6" placeholder="0"
+                aria-label={t('profile.gestationalDays')}
+                value={form.gestationalDays}
+                onChange={(e) => set('gestationalDays', e.target.value)}
+                className="w-20 rounded-lg border border-slate-300 px-2 py-2 text-base"
+              />
+              <span className="text-sm text-slate-500">{t('profile.days')}</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-400">{t('profile.gestationalAgeHint')}</p>
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
               {t('growth.weight')} ({t('growth.weightUnit')})

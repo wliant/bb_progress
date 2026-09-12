@@ -4,6 +4,8 @@ import com.bb.progress.common.Gender;
 import com.bb.progress.growth.GrowthRecord;
 import com.bb.progress.photo.PhotoResponses;
 import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,6 +25,8 @@ public final class BabyDtos {
             @NotNull @PastOrPresent LocalDate dateOfBirth,
             LocalTime timeOfBirth,
             @NotNull Gender gender,
+            // 22+0 to 45+0 weeks: anything outside is a typo rather than a gestation.
+            @Min(154) @Max(315) Integer gestationalAgeDays,
             @DecimalMin("0.3") @DecimalMax("40") BigDecimal birthWeightKg,
             @DecimalMin("20") @DecimalMax("150") BigDecimal birthLengthCm,
             @DecimalMin("20") @DecimalMax("70") BigDecimal birthHeadCircumferenceCm) {
@@ -37,6 +41,7 @@ public final class BabyDtos {
             LocalDate dateOfBirth,
             LocalTime timeOfBirth,
             Gender gender,
+            Integer gestationalAgeDays,
             boolean hasPhoto,
             String photoVersion,
             BigDecimal birthWeightKg,
@@ -49,6 +54,7 @@ public final class BabyDtos {
                     baby.getDateOfBirth(),
                     baby.getTimeOfBirth(),
                     baby.getGender(),
+                    baby.getGestationalAgeDays(),
                     baby.getPhotoPath() != null,
                     PhotoResponses.versionOf(baby.getPhotoPath()),
                     birthRecord == null ? null : birthRecord.getWeightKg(),

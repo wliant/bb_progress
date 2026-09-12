@@ -4,7 +4,9 @@
 Manage the single baby's profile: name, date of birth, gender, and one profile photo. The app supports exactly one baby; the profile is created once and edited thereafter (upsert semantics).
 
 ## Requirements
-- Fields: name (required, 1–100 chars), date of birth (required, not in the future), time of birth (optional, HH:mm), gender (required, MALE | FEMALE), profile photo (optional).
+- Fields: name (required, 1–100 chars), date of birth (required, not in the future), time of birth (optional, HH:mm), gender (required, MALE | FEMALE), gestational age at birth (optional, weeks 22–45 + days 0–6), profile photo (optional).
+- **Gestational age** is what makes the birth measurements interpretable: size at birth is only
+  meaningful relative to how many weeks the pregnancy ran. It feeds the newborn assessment in spec 02.
 - **Birth measurements** (all optional): weight, length, head circumference. They are stored as the
   growth record dated at the date of birth, flagged as the birth record, so they appear on the growth
   chart as the first point without being entered twice. Editing them in the profile updates that

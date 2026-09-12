@@ -58,6 +58,7 @@ public class BabyService {
             baby.setGender(request.gender());
         }
         baby.setTimeOfBirth(request.timeOfBirth());
+        baby.setGestationalAgeDays(request.gestationalAgeDays());
         Baby saved = repository.save(baby);
         applyBirthMeasurements(saved.getDateOfBirth(), request);
         return saved;

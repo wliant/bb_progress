@@ -586,6 +586,87 @@ class ApiIntegrationTest {
         assertThat(served.getResponse().getContentAsByteArray()).isEqualTo(original);
     }
 
+    /** Gestational age turns the birth measurements into a position on the newborn standard. */
+    @Test
+    @Order(20)
+    void newbornAssessmentNeedsBothGestationalAgeAndBirthMeasurements() throws Exception {
+        mockMvc.perform(delete("/api/baby")).andExpect(status().isNoContent());
+
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"小宝\",\"dateOfBirth\":\"2026-01-15\",\"gender\":\"MALE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gestationalAgeDays").doesNotExist());
+
+        mockMvc.perform(get("/api/newborn-assessment"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("GESTATIONAL_AGE_NOT_SET"));
+
+        // Gestational age but still no measurements.
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"小宝","dateOfBirth":"2026-01-15","gender":"MALE",
+                                 "gestationalAgeDays":280}"""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gestationalAgeDays").value(280));
+        mockMvc.perform(get("/api/newborn-assessment"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("BIRTH_MEASUREMENTS_NOT_SET"));
+    }
+
+    @Test
+    @Order(21)
+    void newbornAssessmentPlacesBirthMeasurementsOnTheStandard() throws Exception {
+        // A boy at exactly 40+0 weeks with the published median weight sits at the 50th centile.
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"小宝","dateOfBirth":"2026-01-15","gender":"MALE",
+                                 "gestationalAgeDays":280,"birthWeightKg":3.38,
+                                 "birthLengthCm":49.9,"birthHeadCircumferenceCm":34.3}"""))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/newborn-assessment"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gestationalAgeDays").value(280))
+                .andExpect(jsonPath("$.covered").value(true))
+                .andExpect(jsonPath("$.standard", org.hamcrest.Matchers.containsString("INTERGROWTH")))
+                .andExpect(jsonPath("$.assessments", org.hamcrest.Matchers.hasSize(3)))
+                .andExpect(jsonPath("$.assessments[0].measure").value("WEIGHT"))
+                .andExpect(jsonPath("$.assessments[0].centile",
+                        org.hamcrest.Matchers.closeTo(50.0, 1.0)))
+                .andExpect(jsonPath("$.assessments[0].zScore",
+                        org.hamcrest.Matchers.closeTo(0.0, 0.05)))
+                .andExpect(jsonPath("$.assessments[1].measure").value("HEIGHT"))
+                .andExpect(jsonPath("$.assessments[2].measure").value("HEAD_CIRCUMFERENCE"));
+    }
+
+    @Test
+    @Order(22)
+    void veryPretermGestationsAreReportedAsOutsideTheBundledStandard() throws Exception {
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"小宝","dateOfBirth":"2026-01-15","gender":"MALE",
+                                 "gestationalAgeDays":210,"birthWeightKg":1.2}"""))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/newborn-assessment"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.covered").value(false))
+                .andExpect(jsonPath("$.assessments", org.hamcrest.Matchers.hasSize(0)));
+
+        // Implausible gestations are rejected outright.
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"小宝","dateOfBirth":"2026-01-15","gender":"MALE",
+                                 "gestationalAgeDays":400}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
     private static byte[] largeNoisyPng(int width, int height) throws Exception {
         java.awt.image.BufferedImage image =
                 new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);

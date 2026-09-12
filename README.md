@@ -2,7 +2,7 @@
 
 Personal baby development monitoring app for a single baby. Bilingual (简体中文 / English, defaults to Chinese), Singapore Time everywhere.
 
-**Features**: baby profile (with photo) · growth records with WHO percentile charts · CDC developmental milestone checklist (bilingual) · quick daily care logging (feeding / sleep / diaper).
+**Features**: baby profile (with photo, birth details and gestational age) · growth records with WHO percentile charts · CDC developmental milestone checklist (bilingual) · quick daily care logging (feeding / sleep / diaper).
 
 ## Stack
 
@@ -64,6 +64,13 @@ against the instance holding your data. `cd e2e && npm test` targets whatever is
 
 ## Data sources & attribution
 
+- Size at birth is assessed against the **INTERGROWTH-21st Newborn Size Standards** (Villar et al.,
+  *Lancet* 2014; DOI [10.1016/S0140-6736(14)60932-6](https://doi.org/10.1016/S0140-6736(14)60932-6)),
+  using the project's published skew-t parameters for 33+0–42+6 weeks. Source:
+  <https://intergrowth21.com/tools-resources/newborn-size>. Below 33+0 weeks the project publishes a
+  separate Very Preterm standard which is **not** bundled here; those gestational ages are shown
+  without a centile. The implementation reproduces the project's published centile tables to within
+  15 g (weight) and 0.055 cm (lengths) across the whole range — see `NewbornSizeServiceTest`.
 - Growth percentile curves are computed from the **WHO Child Growth Standards** LMS tables (weight-for-age, length/height-for-age, head-circumference-for-age; birth–36 months), © World Health Organization, licensed CC BY-NC-SA 3.0 IGO. Source: <https://www.who.int/tools/child-growth-standards>. Note: WHO uses length (lying) below 24 months and height (standing) from 24 months, which produces a small step at 24 months in the published tables.
 - Milestone checklist is based on the CDC **"Learn the Signs. Act Early."** program milestones (2022 revision), ages 2–36 months: <https://www.cdc.gov/ncbddd/actearly/milestones/>. Simplified Chinese titles follow CDC's Chinese-language checklists.
 
