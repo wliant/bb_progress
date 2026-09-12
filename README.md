@@ -16,8 +16,17 @@ Personal baby development monitoring app for a single baby. Bilingual (简体中
 
 ```bash
 cp .env.example .env          # adjust APP_PORT etc. as needed
-docker compose up -d --build
+docker compose up -d --build --force-recreate
 open http://localhost:8090    # or your APP_PORT
+```
+
+`--force-recreate` matters after a code change: `--build` alone rebuilds the image but can leave
+the previous container running.
+
+To start over from scratch (clears the profile, all records and photos):
+
+```bash
+curl -X DELETE http://localhost:8090/api/baby
 ```
 
 ### Multiple instances on one machine

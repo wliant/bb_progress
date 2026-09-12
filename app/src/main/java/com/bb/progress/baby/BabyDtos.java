@@ -1,6 +1,7 @@
 package com.bb.progress.baby;
 
 import com.bb.progress.common.Gender;
+import com.bb.progress.photo.PhotoResponses;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
@@ -22,11 +23,12 @@ public final class BabyDtos {
             String name,
             LocalDate dateOfBirth,
             Gender gender,
-            boolean hasPhoto) {
+            boolean hasPhoto,
+            String photoVersion) {
 
         public static BabyResponse from(Baby baby) {
             return new BabyResponse(baby.getName(), baby.getDateOfBirth(), baby.getGender(),
-                    baby.getPhotoPath() != null);
+                    baby.getPhotoPath() != null, PhotoResponses.versionOf(baby.getPhotoPath()));
         }
     }
 }

@@ -25,6 +25,12 @@ public class GrowthService {
         return repository.findAllByOrderByMeasuredOnAsc();
     }
 
+    @Transactional(readOnly = true)
+    public GrowthRecord findById(UUID id) {
+        return repository.findById(id)
+                .orElseThrow(() -> ApiException.notFound("GROWTH_RECORD_NOT_FOUND", "Growth record not found"));
+    }
+
     @Transactional
     public GrowthRecord create(GrowthRecordRequest request) {
         validate(request, null);

@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
 import {
-  useBaby,
   useDeleteGrowthRecord,
   useGrowthRecords,
   useGrowthStandards,
   useSaveGrowthRecord,
 } from '../api/hooks'
-import { ApiError } from '../api/client'
-import type { GrowthMeasure, GrowthRecord } from '../api/types'
+import { ErrorState } from '../components/ErrorState'
+import { RequireBaby } from '../components/RequireBaby'
+import type { Baby, GrowthMeasure, GrowthRecord } from '../api/types'
 import { GrowthChart } from '../features/growth/GrowthChart'
 import { todaySgt } from '../lib/dates'
 
@@ -37,28 +36,22 @@ const emptyForm = (): FormState => ({
 })
 
 export function GrowthPage() {
+  return <RequireBaby>{(baby) => <GrowthContent baby={baby} />}</RequireBaby>
+}
+
+function GrowthContent({ baby }: { baby: Baby }) {
   const { t } = useTranslation()
-  const { data: baby, isLoading: babyLoading } = useBaby()
-  const { data: records = [] } = useGrowthRecords()
+  const { data: records = [], isError, error, refetch } = useGrowthRecords()
   const [measure, setMeasure] = useState<GrowthMeasure>('WEIGHT')
-  const { data: standards } = useGrowthStandards(baby?.gender, measure)
+  const { data: standards } = useGrowthStandards(baby.gender, measure)
   const saveRecord = useSaveGrowthRecord()
   const deleteRecord = useDeleteGrowthRecord()
 
   const [form, setForm] = useState<FormState | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // Only client-side validation lives here; server errors surface as a toast.
+  const [formError, setFormError] = useState<string | null>(null)
 
-  if (babyLoading) return <p className="text-slate-500">{t('common.loading')}</p>
-  if (!baby) {
-    return (
-      <p className="text-slate-600">
-        {t('profile.notCreated')}{' '}
-        <Link className="font-medium text-rose-600 hover:underline" to="/profile">
-          {t('profile.create')}
-        </Link>
-      </p>
-    )
-  }
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} />
 
   const unit = t(MEASURES.find((m) => m.key === measure)!.unitKey)
 
@@ -71,7 +64,7 @@ export function GrowthPage() {
       headCircumferenceCm: record.headCircumferenceCm?.toString() ?? '',
       note: record.note ?? '',
     })
-    setError(null)
+    setFormError(null)
   }
 
   function onSubmit(e: React.FormEvent) {
@@ -85,22 +78,11 @@ export function GrowthPage() {
       note: form.note || null,
     }
     if (input.weightKg == null && input.heightCm == null && input.headCircumferenceCm == null) {
-      setError(t('growth.atLeastOne'))
+      setFormError(t('growth.atLeastOne'))
       return
     }
-    setError(null)
-    saveRecord.mutate(
-      { id: form.id, input },
-      {
-        onSuccess: () => setForm(null),
-        onError: (err) =>
-          setError(
-            err instanceof ApiError && err.code === 'DUPLICATE_DATE'
-              ? t('growth.duplicateDate')
-              : t('common.error'),
-          ),
-      },
-    )
+    setFormError(null)
+    saveRecord.mutate({ id: form.id, input }, { onSuccess: () => setForm(null) })
   }
 
   return (
@@ -109,7 +91,7 @@ export function GrowthPage() {
         <h2 className="text-xl font-bold text-slate-800">{t('growth.title')}</h2>
         <button
           type="button"
-          onClick={() => { setForm(emptyForm()); setError(null) }}
+          onClick={() => { setForm(emptyForm()); setFormError(null) }}
           className="rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-rose-600"
         >
           {t('growth.addRecord')}
@@ -154,6 +136,7 @@ export function GrowthPage() {
               required
               type="date"
               max={todaySgt()}
+              min={baby.dateOfBirth}
               value={form.measuredOn}
               onChange={(e) => setForm({ ...form, measuredOn: e.target.value })}
               className="rounded-lg border border-slate-300 px-3 py-2"
@@ -197,7 +180,7 @@ export function GrowthPage() {
               className="rounded-lg border border-slate-300 px-3 py-2"
             />
           </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {formError && <p className="text-sm text-red-600">{formError}</p>}
           <div className="flex gap-3">
             <button
               type="submit"

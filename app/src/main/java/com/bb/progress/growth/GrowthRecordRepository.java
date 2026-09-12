@@ -11,4 +11,6 @@ public interface GrowthRecordRepository extends JpaRepository<GrowthRecord, UUID
     List<GrowthRecord> findAllByOrderByMeasuredOnAsc();
 
     Optional<GrowthRecord> findByMeasuredOn(LocalDate measuredOn);
+
+    Optional<GrowthRecord> findFirstByOrderByMeasuredOnAsc();
 }

@@ -8,6 +8,8 @@ export interface Baby {
   dateOfBirth: string
   gender: Gender
   hasPhoto: boolean
+  /** Changes whenever the photo is replaced; used to bust the browser's image cache. */
+  photoVersion: string | null
 }
 
 export interface GrowthRecord {
@@ -42,6 +44,7 @@ export interface MilestoneAchievement {
   achievedOn: string
   note: string | null
   hasPhoto: boolean
+  photoVersion: string | null
 }
 
 export interface Milestone {

@@ -3,6 +3,7 @@ package com.bb.progress.milestone;
 import com.bb.progress.milestone.MilestoneDtos.AchievementRequest;
 import com.bb.progress.milestone.MilestoneDtos.AchievementView;
 import com.bb.progress.milestone.MilestoneDtos.AgeGroupView;
+import com.bb.progress.photo.PhotoResponses;
 import com.bb.progress.photo.PhotoStorageService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -53,20 +55,11 @@ public class MilestoneController {
     @PutMapping(path = "/{definitionId}/achievement/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public AchievementView uploadPhoto(@PathVariable String definitionId,
             @RequestParam("file") MultipartFile file) {
-        service.updatePhoto(definitionId, file);
-        return service.listGroupedByAge().stream()
-                .flatMap(group -> group.milestones().stream())
-                .filter(m -> m.id().equals(definitionId))
-                .findFirst()
-                .map(MilestoneDtos.MilestoneView::achievement)
-                .orElseThrow();
+        return service.updatePhoto(definitionId, file);
     }
 
     @GetMapping("/{definitionId}/achievement/photo")
-    public ResponseEntity<Resource> photo(@PathVariable String definitionId) {
-        String path = service.getPhotoPath(definitionId);
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(photoStorage.contentTypeOf(path)))
-                .body(photoStorage.load(path));
+    public ResponseEntity<Resource> photo(@PathVariable String definitionId, WebRequest request) {
+        return PhotoResponses.serve(photoStorage, service.getPhotoPath(definitionId), request);
     }
 }

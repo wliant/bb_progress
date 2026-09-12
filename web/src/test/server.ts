@@ -7,6 +7,7 @@ export const testBaby: Baby = {
   dateOfBirth: '2026-01-15',
   gender: 'FEMALE',
   hasPhoto: false,
+  photoVersion: null,
 }
 
 export const testGrowthRecords: GrowthRecord[] = [
@@ -50,7 +51,7 @@ export const testMilestones: MilestoneAgeGroup[] = [
         category: 'MOTOR',
         titleEn: 'Holds head up when on tummy',
         titleZh: '趴着时能抬头',
-        achievement: { achievedOn: '2026-03-01', note: null, hasPhoto: false },
+        achievement: { achievedOn: '2026-03-01', note: null, hasPhoto: false, photoVersion: null },
       },
     ],
   },
@@ -59,6 +60,11 @@ export const testMilestones: MilestoneAgeGroup[] = [
 export const testCareLogs: CareLog[] = [
   { id: 'c1', type: 'FEEDING', loggedAt: '2026-05-10T09:30:00+08:00', note: '150ml' },
 ]
+
+/** Mirrors the backend's error contract: every failure carries a stable `code`. */
+export function apiError(status: number, code: string) {
+  return HttpResponse.json({ status, code, message: code }, { status })
+}
 
 export const handlers = [
   http.get('/api/baby', () => HttpResponse.json(testBaby)),

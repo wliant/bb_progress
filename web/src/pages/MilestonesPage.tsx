@@ -6,18 +6,29 @@ import {
   useSetMilestoneAchievement,
   useUploadMilestonePhoto,
 } from '../api/hooks'
-import type { Milestone } from '../api/types'
+import { ErrorState } from '../components/ErrorState'
+import { RequireBaby } from '../components/RequireBaby'
+import type { Baby, Milestone } from '../api/types'
 import { todaySgt } from '../lib/dates'
 
 export function MilestonesPage() {
+  return <RequireBaby>{(baby) => <MilestonesContent baby={baby} />}</RequireBaby>
+}
+
+function MilestonesContent({ baby }: { baby: Baby }) {
   const { t, i18n } = useTranslation()
-  const { data: groups = [], isLoading } = useMilestones()
+  const { data: groups = [], isLoading, isError, error, refetch } = useMilestones()
   const [openGroup, setOpenGroup] = useState<number | null>(null)
-  const [dialog, setDialog] = useState<Milestone | null>(null)
+  const [dialogId, setDialogId] = useState<string | null>(null)
 
   const title = (m: Milestone) => (i18n.language === 'zh-CN' ? m.titleZh : m.titleEn)
 
   if (isLoading) return <p className="text-slate-500">{t('common.loading')}</p>
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} />
+
+  // Derived from the query rather than held in state, so an upload or edit inside the
+  // dialog is reflected as soon as the list refreshes.
+  const dialogMilestone = groups.flatMap((g) => g.milestones).find((m) => m.id === dialogId) ?? null
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-3">
@@ -47,7 +58,7 @@ export function MilestonesPage() {
                   <li key={milestone.id}>
                     <button
                       type="button"
-                      onClick={() => setDialog(milestone)}
+                      onClick={() => setDialogId(milestone.id)}
                       className="flex w-full items-start gap-3 px-5 py-3 text-left hover:bg-slate-50"
                     >
                       <span
@@ -78,17 +89,26 @@ export function MilestonesPage() {
         )
       })}
 
-      {dialog && <MilestoneDialog milestone={dialog} onClose={() => setDialog(null)} titleOf={title} />}
+      {dialogMilestone && (
+        <MilestoneDialog
+          milestone={dialogMilestone}
+          minDate={baby.dateOfBirth}
+          onClose={() => setDialogId(null)}
+          titleOf={title}
+        />
+      )}
     </div>
   )
 }
 
 function MilestoneDialog({
   milestone,
+  minDate,
   onClose,
   titleOf,
 }: {
   milestone: Milestone
+  minDate: string
   onClose: () => void
   titleOf: (m: Milestone) => string
 }) {
@@ -115,6 +135,7 @@ function MilestoneDialog({
   function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) uploadPhoto.mutate({ id: milestone.id, file })
+    e.target.value = ''
   }
 
   return (
@@ -136,6 +157,7 @@ function MilestoneDialog({
           <input
             type="date"
             max={todaySgt()}
+            min={minDate}
             value={achievedOn}
             onChange={(e) => setAchievedOn(e.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2"
@@ -156,7 +178,7 @@ function MilestoneDialog({
           <div className="mb-3">
             {milestone.achievement.hasPhoto && (
               <img
-                src={`/api/milestones/${milestone.id}/achievement/photo`}
+                src={`/api/milestones/${milestone.id}/achievement/photo?v=${milestone.achievement.photoVersion}`}
                 alt=""
                 className="mb-2 h-32 w-full rounded-lg object-cover"
               />
@@ -172,9 +194,9 @@ function MilestoneDialog({
               type="button"
               onClick={() => fileInput.current?.click()}
               disabled={uploadPhoto.isPending}
-              className="text-sm font-medium text-rose-600 hover:underline"
+              className="text-sm font-medium text-rose-600 hover:underline disabled:opacity-50"
             >
-              {t('milestones.uploadPhoto')}
+              {uploadPhoto.isPending ? t('common.loading') : t('milestones.uploadPhoto')}
             </button>
           </div>
         )}

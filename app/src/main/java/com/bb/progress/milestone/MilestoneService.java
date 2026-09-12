@@ -7,9 +7,11 @@ import com.bb.progress.milestone.MilestoneDtos.AchievementView;
 import com.bb.progress.milestone.MilestoneDtos.AgeGroupView;
 import com.bb.progress.milestone.MilestoneDtos.MilestoneView;
 import com.bb.progress.photo.PhotoStorageService;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -41,7 +43,7 @@ public class MilestoneService {
         Map<Integer, List<MilestoneView>> groups = new LinkedHashMap<>();
         for (MilestoneDefinition definition : definitions.findAllByOrderByAgeMonthsAscSortOrderAsc()) {
             MilestoneAchievement achievement = byMilestoneId.get(definition.getId());
-            groups.computeIfAbsent(definition.getAgeMonths(), k -> new java.util.ArrayList<>())
+            groups.computeIfAbsent(definition.getAgeMonths(), k -> new ArrayList<>())
                     .add(new MilestoneView(definition.getId(), definition.getCategory(),
                             definition.getTitleEn(), definition.getTitleZh(),
                             achievement == null ? null : AchievementView.from(achievement)));
@@ -57,11 +59,8 @@ public class MilestoneService {
         if (request.achievedOn().isBefore(babyService.get().getDateOfBirth())) {
             throw ApiException.badRequest("ACHIEVED_BEFORE_BIRTH", "Achievement date is before the date of birth");
         }
-        MilestoneAchievement achievement = achievements.findByMilestoneId(definitionId)
-                .orElseGet(() -> new MilestoneAchievement(definitionId, request.achievedOn(), request.note()));
-        achievement.setAchievedOn(request.achievedOn());
-        achievement.setNote(request.note());
-        return AchievementView.from(achievements.save(achievement));
+        achievements.upsert(UUID.randomUUID(), definitionId, request.achievedOn(), request.note());
+        return AchievementView.from(requireAchievement(definitionId));
     }
 
     @Transactional
@@ -72,12 +71,13 @@ public class MilestoneService {
     }
 
     @Transactional
-    public void updatePhoto(String definitionId, MultipartFile file) {
+    public AchievementView updatePhoto(String definitionId, MultipartFile file) {
         MilestoneAchievement achievement = requireAchievement(definitionId);
         String oldPath = achievement.getPhotoPath();
         achievement.setPhotoPath(photoStorage.store("milestones", file));
-        achievements.save(achievement);
+        AchievementView view = AchievementView.from(achievements.save(achievement));
         photoStorage.deleteIfExists(oldPath);
+        return view;
     }
 
     @Transactional(readOnly = true)

@@ -2,15 +2,21 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCareLogs, useDeleteCareLog, useUpdateCareLog } from '../api/hooks'
 import { QuickCareButtons } from '../components/QuickCareButtons'
+import { ErrorState } from '../components/ErrorState'
+import { RequireBaby } from '../components/RequireBaby'
 import type { CareLog, CareType } from '../api/types'
 import { timeSgt, todaySgt } from '../lib/dates'
 
 const ICONS: Record<CareType, string> = { FEEDING: '🍼', SLEEP: '😴', DIAPER: '🧷' }
 
 export function CareLogsPage() {
+  return <RequireBaby>{() => <CareLogsContent />}</RequireBaby>
+}
+
+function CareLogsContent() {
   const { t } = useTranslation()
   const [date, setDate] = useState(todaySgt())
-  const { data: logs = [], isLoading } = useCareLogs(date)
+  const { data: logs = [], isLoading, isError, error, refetch } = useCareLogs(date)
   const deleteLog = useDeleteCareLog()
   const [editing, setEditing] = useState<CareLog | null>(null)
 
@@ -38,39 +44,43 @@ export function CareLogsPage() {
         </section>
       )}
 
-      <section className="rounded-2xl bg-white p-5 shadow-sm">
-        <p className="mb-3 text-sm text-slate-500">
-          {t('care.todayCounts')}: 🍼 {counts.FEEDING} · 😴 {counts.SLEEP} · 🧷 {counts.DIAPER}
-        </p>
-        {isLoading ? (
-          <p className="text-sm text-slate-500">{t('common.loading')}</p>
-        ) : logs.length === 0 ? (
-          <p className="text-sm text-slate-500">{t('care.noLogs')}</p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {logs.map((log) => (
-              <li key={log.id} className="flex items-center gap-3 py-3 text-sm">
-                <span aria-hidden className="text-xl">{ICONS[log.type]}</span>
-                <span className="w-14 font-mono text-slate-700">{timeSgt(log.loggedAt)}</span>
-                <span className="flex-1 text-slate-600">
-                  {t(`care.${log.type}`)}
-                  {log.note && <span className="text-slate-400"> · {log.note}</span>}
-                </span>
-                <button type="button" onClick={() => setEditing(log)} className="text-rose-600 hover:underline">
-                  {t('common.edit')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => deleteLog.mutate(log.id)}
-                  className="text-slate-400 hover:text-red-600"
-                >
-                  {t('common.delete')}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {isError ? (
+        <ErrorState error={error} onRetry={() => void refetch()} />
+      ) : (
+        <section className="rounded-2xl bg-white p-5 shadow-sm">
+          <p className="mb-3 text-sm text-slate-500">
+            {t('care.todayCounts')}: 🍼 {counts.FEEDING} · 😴 {counts.SLEEP} · 🧷 {counts.DIAPER}
+          </p>
+          {isLoading ? (
+            <p className="text-sm text-slate-500">{t('common.loading')}</p>
+          ) : logs.length === 0 ? (
+            <p className="text-sm text-slate-500">{t('care.noLogs')}</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {logs.map((log) => (
+                <li key={log.id} className="flex items-center gap-3 py-3 text-sm">
+                  <span aria-hidden className="text-xl">{ICONS[log.type]}</span>
+                  <span className="w-14 font-mono text-slate-700">{timeSgt(log.loggedAt)}</span>
+                  <span className="flex-1 text-slate-600">
+                    {t(`care.${log.type}`)}
+                    {log.note && <span className="text-slate-400"> · {log.note}</span>}
+                  </span>
+                  <button type="button" onClick={() => setEditing(log)} className="text-rose-600 hover:underline">
+                    {t('common.edit')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteLog.mutate(log.id)}
+                    className="text-slate-400 hover:text-red-600"
+                  >
+                    {t('common.delete')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {editing && <EditDialog log={editing} onClose={() => setEditing(null)} />}
     </div>
@@ -106,6 +116,7 @@ function EditDialog({ log, onClose }: { log: CareLog; onClose: () => void }) {
           {t('care.time')}
           <input
             type="datetime-local"
+            required
             value={time}
             onChange={(e) => setTime(e.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2"
@@ -124,7 +135,7 @@ function EditDialog({ log, onClose }: { log: CareLog; onClose: () => void }) {
           <button
             type="button"
             onClick={save}
-            disabled={updateLog.isPending}
+            disabled={updateLog.isPending || time === ''}
             className="flex-1 rounded-xl bg-rose-500 py-2.5 font-semibold text-white shadow hover:bg-rose-600 disabled:opacity-50"
           >
             {t('common.save')}

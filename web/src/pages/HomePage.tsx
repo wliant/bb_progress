@@ -1,32 +1,18 @@
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useBaby, useCareLogs } from '../api/hooks'
+import { useCareLogs } from '../api/hooks'
 import { QuickCareButtons } from '../components/QuickCareButtons'
+import { RequireBaby } from '../components/RequireBaby'
 import { ageParts, todaySgt } from '../lib/dates'
-import type { CareType } from '../api/types'
+import type { Baby, CareType } from '../api/types'
 
 export function HomePage() {
+  return <RequireBaby>{(baby) => <HomeContent baby={baby} />}</RequireBaby>
+}
+
+function HomeContent({ baby }: { baby: Baby }) {
   const { t } = useTranslation()
-  const { data: baby, isLoading } = useBaby()
   const today = todaySgt()
   const { data: logs } = useCareLogs(today)
-
-  if (isLoading) return <p className="text-slate-500">{t('common.loading')}</p>
-
-  if (!baby) {
-    return (
-      <div className="mx-auto max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
-        <p className="mb-4 text-4xl" aria-hidden>👶</p>
-        <p className="mb-6 text-slate-600">{t('profile.notCreated')}</p>
-        <Link
-          to="/profile"
-          className="inline-block rounded-xl bg-rose-500 px-6 py-3 font-semibold text-white shadow hover:bg-rose-600"
-        >
-          {t('profile.create')}
-        </Link>
-      </div>
-    )
-  }
 
   const age = ageParts(baby.dateOfBirth, today)
   const counts: Record<CareType, number> = { FEEDING: 0, SLEEP: 0, DIAPER: 0 }
@@ -37,7 +23,7 @@ export function HomePage() {
       <section className="flex items-center gap-4 rounded-2xl bg-white p-6 shadow-sm">
         {baby.hasPhoto ? (
           <img
-            src="/api/baby/photo"
+            src={`/api/baby/photo?v=${baby.photoVersion}`}
             alt={baby.name}
             className="h-16 w-16 rounded-full object-cover"
           />

@@ -36,6 +36,11 @@ public class GrowthController {
         return service.findAll().stream().map(GrowthRecordResponse::from).toList();
     }
 
+    @GetMapping("/growth-records/{id}")
+    public GrowthRecordResponse get(@PathVariable UUID id) {
+        return GrowthRecordResponse.from(service.findById(id));
+    }
+
     @PostMapping("/growth-records")
     @ResponseStatus(HttpStatus.CREATED)
     public GrowthRecordResponse create(@Valid @RequestBody GrowthRecordRequest request) {

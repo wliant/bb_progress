@@ -1,5 +1,6 @@
 package com.bb.progress.carelog;
 
+import com.bb.progress.baby.BabyService;
 import com.bb.progress.carelog.CareLogDtos.CareLogCreateRequest;
 import com.bb.progress.carelog.CareLogDtos.CareLogUpdateRequest;
 import com.bb.progress.common.ApiException;
@@ -16,9 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class CareLogService {
 
     private final CareLogRepository repository;
+    private final BabyService babyService;
 
-    public CareLogService(CareLogRepository repository) {
+    public CareLogService(CareLogRepository repository, BabyService babyService) {
         this.repository = repository;
+        this.babyService = babyService;
     }
 
     /** Lists entries for the given SGT calendar date (default: today in SGT). */
@@ -35,6 +38,8 @@ public class CareLogService {
 
     @Transactional
     public CareLog create(CareLogCreateRequest request) {
+        // Same precondition as growth records and milestones: a profile must exist first.
+        babyService.get();
         Instant loggedAt = request.loggedAt() != null ? request.loggedAt().toInstant() : Instant.now();
         requireNotFuture(loggedAt);
         return repository.save(new CareLog(request.type(), loggedAt, request.note()));

@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useBaby, useSaveBaby, useUploadBabyPhoto } from '../api/hooks'
-import { ApiError } from '../api/client'
+import { ErrorState } from '../components/ErrorState'
 import type { Gender } from '../api/types'
 import { todaySgt } from '../lib/dates'
 
 export function ProfilePage() {
   const { t } = useTranslation()
-  const { data: baby, isLoading } = useBaby()
+  const { data: baby, isLoading, isError, error, refetch } = useBaby()
   const saveBaby = useSaveBaby()
   const uploadPhoto = useUploadBabyPhoto()
   const fileInput = useRef<HTMLInputElement>(null)
@@ -16,8 +16,6 @@ export function ProfilePage() {
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [gender, setGender] = useState<Gender>('FEMALE')
   const [saved, setSaved] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [photoVersion, setPhotoVersion] = useState(0)
 
   useEffect(() => {
     if (baby) {
@@ -29,8 +27,8 @@ export function ProfilePage() {
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
     setSaved(false)
+    // Failures surface as a toast via the shared mutation error handler.
     saveBaby.mutate(
       { name, dateOfBirth, gender },
       {
@@ -38,27 +36,18 @@ export function ProfilePage() {
           setSaved(true)
           setTimeout(() => setSaved(false), 2500)
         },
-        onError: () => setError(t('common.error')),
       },
     )
   }
 
   function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
-    setError(null)
-    uploadPhoto.mutate(file, {
-      onSuccess: () => setPhotoVersion((v) => v + 1),
-      onError: (err) =>
-        setError(
-          err instanceof ApiError && err.code === 'UNSUPPORTED_PHOTO_TYPE'
-            ? t('profile.photoTypeError')
-            : t('common.error'),
-        ),
-    })
+    if (file) uploadPhoto.mutate(file)
+    e.target.value = ''
   }
 
   if (isLoading) return <p className="text-slate-500">{t('common.loading')}</p>
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} />
 
   return (
     <div className="mx-auto max-w-md">
@@ -69,7 +58,7 @@ export function ProfilePage() {
           <div className="flex flex-col items-center gap-2">
             {baby.hasPhoto ? (
               <img
-                src={`/api/baby/photo?v=${photoVersion}`}
+                src={`/api/baby/photo?v=${baby.photoVersion}`}
                 alt={baby.name}
                 className="h-24 w-24 rounded-full object-cover"
               />
@@ -144,7 +133,6 @@ export function ProfilePage() {
           </div>
         </fieldset>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
         {saved && <p className="text-sm text-emerald-600">{t('profile.saved')}</p>}
 
         <button

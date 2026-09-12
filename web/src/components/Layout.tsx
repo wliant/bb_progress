@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { ToastHost } from './ToastHost'
 
 const NAV_ITEMS = [
   { to: '/', key: 'nav.home', icon: '🏠' },
@@ -60,6 +61,8 @@ export function Layout() {
           ))}
         </nav>
       </div>
+
+      <ToastHost />
     </div>
   )
 }

@@ -58,7 +58,31 @@ npx playwright test tests/growth.spec.ts     # single spec
 E2E_BASE_URL=http://localhost:8090 npm test  # custom port
 
 # stack (repo root; needs .env — copy from .env.example)
-docker compose up -d --build
-docker compose --env-file .env.instance2 up -d   # second instance (unique COMPOSE_PROJECT_NAME + APP_PORT)
+docker compose up -d --build --force-recreate     # see note below: --force-recreate is required
+docker compose --env-file .env.instance2 up -d    # second instance (unique COMPOSE_PROJECT_NAME + APP_PORT)
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db  # Postgres only, published on :5433 for native dev
+curl -X DELETE http://localhost:8090/api/baby     # wipe profile + all records (not exposed in the UI)
 ```
+
+**Never pipe a test or build command into `tail`/`head`** — the pipeline's exit status is the
+pager's, so a failing Gradle build reports success. Redirect to a file and check `$?` instead:
+`./gradlew test integrationTest > /tmp/t.log 2>&1; echo $?`. Confirm tests actually ran by
+reading `app/build/test-results/*/`; a compile error produces no results at all.
+
+**`docker compose up -d --build` can leave the old container running** even after it rebuilds
+the image, so verification silently tests stale code. Always add `--force-recreate`, and sanity
+check with `docker compose exec app ls -l /app/app.jar` if behaviour looks unchanged.
+
+## Conventions worth preserving
+
+- **Error contract**: every API error returns `{status, code, message, fieldErrors[]}` with a
+  stable `code`. `GlobalExceptionHandler` extends `ResponseEntityExceptionHandler` so Spring's
+  own MVC exceptions are rewritten into that shape too — add new codes there, and a matching
+  `errors.<CODE>` entry in **both** `web/src/i18n/locales/*.json`.
+- **No silent failures**: failed writes surface through the shared `MutationCache` handler in
+  `web/src/main.tsx` (a toast via `lib/toast.ts`), so mutations need no per-call `onError`.
+  Failed reads render `<ErrorState>` in place — never an empty list.
+- **Pages gate on the profile** with `<RequireBaby>`; every write endpoint enforces the same
+  precondition server-side.
+- Dialogs must derive their subject from the query cache (by id), not hold a snapshot in
+  state, or an edit made inside the dialog won't be reflected until it is reopened.
