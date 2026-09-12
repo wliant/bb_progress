@@ -93,3 +93,8 @@ check with `docker compose exec app ls -l /app/app.jar` if behaviour looks uncha
   precondition server-side.
 - Dialogs must derive their subject from the query cache (by id), not hold a snapshot in
   state, or an edit made inside the dialog won't be reflected until it is reopened.
+- **Photos**: uploads accept 25 MB (Spring `max-file-size`), nginx allows 32 MB so the app
+  answers oversized uploads itself, and nginx's own 413 returns the same coded JSON. Care-log
+  and milestone photos go through `PhotoStorageService.storeCompressed` (re-encoded to JPEG
+  ≤1 MB, EXIF orientation applied); the **profile photo alone** uses `store` and keeps the
+  original bytes. Tests that upload must use real image bytes — the compressor decodes them.

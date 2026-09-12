@@ -49,7 +49,8 @@
     "MISSING_FILE": "No file was selected",
     "INTERNAL_ERROR": "Server error — please try again shortly",
     "NETWORK": "Can't reach the server — check your connection",
-    "UNKNOWN": "Something went wrong, please try again"
+    "UNKNOWN": "Something went wrong, please try again",
+    "IMAGE_UNREADABLE": "That image couldn't be read — try a JPEG or PNG"
   },
   "profile": {
     "title": "Baby Profile",
@@ -122,7 +123,13 @@
       "FEEDING": "e.g. 150ml or left side 10 min",
       "SLEEP": "e.g. nap, 1 hour",
       "DIAPER": "e.g. wet / dirty"
-    }
+    },
+    "photo": "Photo",
+    "addPhoto": "Add photo",
+    "replacePhoto": "Replace photo",
+    "removePhoto": "Remove photo",
+    "uploading": "Uploading…",
+    "photoHint": "JPEG, PNG or WebP up to 25MB; compressed to under 1MB on save."
   },
   "home": {
     "welcome": "Welcome back",

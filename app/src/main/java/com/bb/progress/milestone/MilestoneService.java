@@ -6,6 +6,7 @@ import com.bb.progress.milestone.MilestoneDtos.AchievementRequest;
 import com.bb.progress.milestone.MilestoneDtos.AchievementView;
 import com.bb.progress.milestone.MilestoneDtos.AgeGroupView;
 import com.bb.progress.milestone.MilestoneDtos.MilestoneView;
+import com.bb.progress.photo.ImageCompressor;
 import com.bb.progress.photo.PhotoStorageService;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -74,7 +75,7 @@ public class MilestoneService {
     public AchievementView updatePhoto(String definitionId, MultipartFile file) {
         MilestoneAchievement achievement = requireAchievement(definitionId);
         String oldPath = achievement.getPhotoPath();
-        achievement.setPhotoPath(photoStorage.store("milestones", file));
+        achievement.setPhotoPath(photoStorage.storeCompressed("milestones", file, ImageCompressor.ONE_MEGABYTE));
         AchievementView view = AchievementView.from(achievements.save(achievement));
         photoStorage.deleteIfExists(oldPath);
         return view;

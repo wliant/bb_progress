@@ -82,6 +82,8 @@ export interface CareLog {
   type: CareType
   loggedAt: string
   note: string | null
+  hasPhoto: boolean
+  photoVersion: string | null
 }
 
 export interface ApiErrorBody {

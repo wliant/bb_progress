@@ -24,13 +24,40 @@ public class PhotoStorageService {
             "image/webp", "webp");
 
     private final Path baseDir;
+    private final ImageCompressor compressor;
 
-    public PhotoStorageService(@Value("${app.photo-dir}") String photoDir) {
+    public PhotoStorageService(@Value("${app.photo-dir}") String photoDir, ImageCompressor compressor) {
         this.baseDir = Path.of(photoDir);
+        this.compressor = compressor;
     }
 
-    /** Stores the file under the given subdirectory and returns the relative path to persist. */
+    /** Stores the upload byte-for-byte. Used for the profile photo, which keeps full quality. */
     public String store(String subdir, MultipartFile file) {
+        String extension = validate(file);
+        try (InputStream in = file.getInputStream()) {
+            return write(subdir, extension, target -> Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to store photo", e);
+        }
+    }
+
+    /**
+     * Re-encodes the upload to a JPEG of at most {@code maxBytes} before storing, so a photo
+     * straight off a phone can be accepted without keeping megabytes per log entry.
+     */
+    public String storeCompressed(String subdir, MultipartFile file, long maxBytes) {
+        validate(file);
+        byte[] source;
+        try {
+            source = file.getBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read upload", e);
+        }
+        byte[] compressed = compressor.compress(source, maxBytes);
+        return write(subdir, "jpg", target -> Files.write(target, compressed));
+    }
+
+    private String validate(MultipartFile file) {
         String contentType = file.getContentType();
         String extension = contentType == null ? null : EXTENSION_BY_TYPE.get(contentType);
         if (extension == null) {
@@ -40,13 +67,19 @@ public class PhotoStorageService {
         if (file.isEmpty()) {
             throw ApiException.badRequest("EMPTY_FILE", "Uploaded file is empty");
         }
+        return extension;
+    }
+
+    private interface Writer {
+        void write(Path target) throws IOException;
+    }
+
+    private String write(String subdir, String extension, Writer writer) {
         String relativePath = subdir + "/" + UUID.randomUUID() + "." + extension;
         Path target = baseDir.resolve(relativePath);
         try {
             Files.createDirectories(target.getParent());
-            try (InputStream in = file.getInputStream()) {
-                Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-            }
+            writer.write(target);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to store photo", e);
         }

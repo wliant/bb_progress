@@ -5,7 +5,10 @@ import com.bb.progress.carelog.CareLogDtos.CareLogCreateRequest;
 import com.bb.progress.carelog.CareLogDtos.CareLogUpdateRequest;
 import com.bb.progress.common.ApiException;
 import com.bb.progress.common.Sgt;
+import com.bb.progress.photo.ImageCompressor;
+import com.bb.progress.photo.PhotoStorageService;
 import java.time.Instant;
+import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -18,10 +21,13 @@ public class CareLogService {
 
     private final CareLogRepository repository;
     private final BabyService babyService;
+    private final PhotoStorageService photoStorage;
 
-    public CareLogService(CareLogRepository repository, BabyService babyService) {
+    public CareLogService(CareLogRepository repository, BabyService babyService,
+            PhotoStorageService photoStorage) {
         this.repository = repository;
         this.babyService = babyService;
+        this.photoStorage = photoStorage;
     }
 
     /** Lists entries for the given SGT calendar date (default: today in SGT). */
@@ -47,8 +53,7 @@ public class CareLogService {
 
     @Transactional
     public CareLog update(UUID id, CareLogUpdateRequest request) {
-        CareLog log = repository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("CARE_LOG_NOT_FOUND", "Care log not found"));
+        CareLog log = require(id);
         Instant loggedAt = request.loggedAt().toInstant();
         requireNotFuture(loggedAt);
         log.setLoggedAt(loggedAt);
@@ -58,10 +63,44 @@ public class CareLogService {
 
     @Transactional
     public void delete(UUID id) {
-        if (!repository.existsById(id)) {
-            throw ApiException.notFound("CARE_LOG_NOT_FOUND", "Care log not found");
+        CareLog log = require(id);
+        repository.delete(log);
+        photoStorage.deleteIfExists(log.getPhotoPath());
+    }
+
+    /** Photos on log entries are re-encoded to stay small; only the profile photo keeps its original. */
+    @Transactional
+    public CareLog updatePhoto(UUID id, MultipartFile file) {
+        CareLog log = require(id);
+        String oldPath = log.getPhotoPath();
+        log.setPhotoPath(photoStorage.storeCompressed("care-logs", file, ImageCompressor.ONE_MEGABYTE));
+        CareLog saved = repository.save(log);
+        photoStorage.deleteIfExists(oldPath);
+        return saved;
+    }
+
+    @Transactional
+    public CareLog removePhoto(UUID id) {
+        CareLog log = require(id);
+        String oldPath = log.getPhotoPath();
+        log.setPhotoPath(null);
+        CareLog saved = repository.save(log);
+        photoStorage.deleteIfExists(oldPath);
+        return saved;
+    }
+
+    @Transactional(readOnly = true)
+    public String getPhotoPath(UUID id) {
+        String path = require(id).getPhotoPath();
+        if (path == null) {
+            throw ApiException.notFound("PHOTO_NOT_FOUND", "No photo on this entry");
         }
-        repository.deleteById(id);
+        return path;
+    }
+
+    private CareLog require(UUID id) {
+        return repository.findById(id)
+                .orElseThrow(() -> ApiException.notFound("CARE_LOG_NOT_FOUND", "Care log not found"));
     }
 
     private void requireNotFuture(Instant loggedAt) {

@@ -6,7 +6,7 @@ import { ErrorState } from '../components/ErrorState'
 import { RequireBaby } from '../components/RequireBaby'
 import { CareLogList } from '../features/care/CareLogList'
 import { CareLogEditDialog } from '../features/care/CareLogEditDialog'
-import type { CareLog, CareType } from '../api/types'
+import type { CareType } from '../api/types'
 import { todaySgt } from '../lib/dates'
 
 export function CareLogsPage() {
@@ -17,7 +17,10 @@ function CareLogsContent() {
   const { t } = useTranslation()
   const [date, setDate] = useState(todaySgt())
   const { data: logs = [], isLoading, isError, error, refetch } = useCareLogs(date)
-  const [editing, setEditing] = useState<CareLog | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  // Derived, not held in state: an upload inside the dialog must be reflected there.
+  const editing = logs.find((log) => log.id === editingId) ?? null
 
   const counts: Record<CareType, number> = { FEEDING: 0, SLEEP: 0, DIAPER: 0 }
   for (const log of logs) counts[log.type] += 1
@@ -55,12 +58,12 @@ function CareLogsContent() {
           ) : logs.length === 0 ? (
             <p className="text-sm text-slate-500">{t('care.noLogs')}</p>
           ) : (
-            <CareLogList logs={logs} onSelect={setEditing} />
+            <CareLogList logs={logs} onSelect={(log) => setEditingId(log.id)} />
           )}
         </section>
       )}
 
-      {editing && <CareLogEditDialog log={editing} onClose={() => setEditing(null)} />}
+      {editing && <CareLogEditDialog log={editing} onClose={() => setEditingId(null)} />}
     </div>
   )
 }

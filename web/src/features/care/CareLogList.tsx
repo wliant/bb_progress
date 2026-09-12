@@ -32,6 +32,13 @@ export function CareLogList({ logs, onSelect }: Props) {
               {t(`care.${log.type}`)}
               {log.note && <span className="text-slate-400"> · {log.note}</span>}
             </span>
+            {log.hasPhoto && (
+              <img
+                src={`/api/care-logs/${log.id}/photo?v=${log.photoVersion}`}
+                alt={t('care.photo')}
+                className="h-10 w-10 shrink-0 rounded-md object-cover"
+              />
+            )}
             <span aria-hidden className="text-slate-300">›</span>
           </button>
         </li>

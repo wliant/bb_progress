@@ -72,7 +72,7 @@ export const testMilestones: MilestoneAgeGroup[] = [
 ]
 
 export const testCareLogs: CareLog[] = [
-  { id: 'c1', type: 'FEEDING', loggedAt: '2026-05-10T09:30:00+08:00', note: '150ml' },
+  { id: 'c1', type: 'FEEDING', loggedAt: '2026-05-10T09:30:00+08:00', note: '150ml', hasPhoto: false, photoVersion: null },
 ]
 
 /** Mirrors the backend's error contract: every failure carries a stable `code`. */

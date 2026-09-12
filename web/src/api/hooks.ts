@@ -144,3 +144,20 @@ export function useDeleteCareLog() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['care-logs'] }),
   })
 }
+
+export function useUploadCareLogPhoto() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) =>
+      apiUpload<CareLog>(`/api/care-logs/${id}/photo`, file),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['care-logs'] }),
+  })
+}
+
+export function useRemoveCareLogPhoto() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => apiSend<CareLog>('DELETE', `/api/care-logs/${id}/photo`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['care-logs'] }),
+  })
+}

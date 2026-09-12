@@ -38,9 +38,12 @@ import org.springframework.test.web.servlet.MvcResult;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ApiIntegrationTest {
 
+    static String photoDirPath;
+
     @org.springframework.test.context.DynamicPropertySource
     static void photoDir(org.springframework.test.context.DynamicPropertyRegistry registry) throws Exception {
         Path dir = Files.createTempDirectory("bb-progress-photos");
+        photoDirPath = dir.toString();
         registry.add("app.photo-dir", dir::toString);
     }
 
@@ -184,7 +187,7 @@ class ApiIntegrationTest {
                 .andExpect(jsonPath("$.hasPhoto").value(false));
 
         mockMvc.perform(multipart("/api/milestones/2m-social-smiles/achievement/photo")
-                        .file(new MockMultipartFile("file", "smile.jpg", "image/jpeg", new byte[]{1, 2, 3}))
+                        .file(new MockMultipartFile("file", "smile.jpg", "image/jpeg", tinyJpeg()))
                         .with(req -> { req.setMethod("PUT"); return req; }))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.hasPhoto").value(true));
@@ -347,7 +350,7 @@ class ApiIntegrationTest {
 
         // A photo survives a later edit of the date/note.
         mockMvc.perform(multipart("/api/milestones/4m-motor-holds-toy/achievement/photo")
-                        .file(new MockMultipartFile("file", "p.png", "image/png", new byte[]{1, 2}))
+                        .file(new MockMultipartFile("file", "p.jpg", "image/jpeg", tinyJpeg()))
                         .with(req -> { req.setMethod("PUT"); return req; }))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.hasPhoto").value(true))
@@ -468,5 +471,149 @@ class ApiIntegrationTest {
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
                 .andExpect(jsonPath("$[0].measuredOn").value("2026-02-10"))
                 .andExpect(jsonPath("$[0].birth").value(false));
+    }
+
+    /** A photo straight off a phone is accepted and stored small. */
+    @Test
+    @Order(16)
+    void careLogPhotoIsAcceptedAtPhoneSizeAndStoredUnderOneMegabyte() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"note\":\"150ml\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.hasPhoto").value(false))
+                .andReturn();
+        String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+
+        byte[] bigPhoto = largeNoisyPng(4032, 3024);
+        assertThat(bigPhoto.length).isGreaterThan(5_000_000);
+
+        mockMvc.perform(multipart("/api/care-logs/" + id + "/photo")
+                        .file(new MockMultipartFile("file", "IMG_0001.png", "image/png", bigPhoto))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasPhoto").value(true))
+                .andExpect(jsonPath("$.photoVersion").isNotEmpty())
+                // The note survives a photo upload.
+                .andExpect(jsonPath("$.note").value("150ml"));
+
+        MvcResult served = mockMvc.perform(get("/api/care-logs/" + id + "/photo"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-cache")))
+                .andExpect(header().exists("ETag"))
+                .andReturn();
+        byte[] stored = served.getResponse().getContentAsByteArray();
+        assertThat(stored.length).isLessThanOrEqualTo(1_048_576);
+        assertThat(served.getResponse().getContentType()).isEqualTo("image/jpeg");
+
+        // The list carries the photo flag so rows can show a thumbnail.
+        mockMvc.perform(get("/api/care-logs"))
+                .andExpect(jsonPath("$[0].hasPhoto").value(true));
+
+        mockMvc.perform(delete("/api/care-logs/" + id + "/photo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasPhoto").value(false));
+        mockMvc.perform(get("/api/care-logs/" + id + "/photo"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PHOTO_NOT_FOUND"));
+    }
+
+    @Test
+    @Order(17)
+    void careLogPhotoRejectsNonImagesAndUnsupportedTypes() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"DIAPER\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(multipart("/api/care-logs/" + id + "/photo")
+                        .file(new MockMultipartFile("file", "x.heic", "image/heic", new byte[] {1, 2, 3}))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_PHOTO_TYPE"));
+
+        // Right content type, but the bytes are not decodable.
+        mockMvc.perform(multipart("/api/care-logs/" + id + "/photo")
+                        .file(new MockMultipartFile("file", "x.jpg", "image/jpeg", "junk".getBytes()))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("IMAGE_UNREADABLE"));
+
+        mockMvc.perform(multipart("/api/care-logs/00000000-0000-0000-0000-000000000000/photo")
+                        .file(new MockMultipartFile("file", "x.jpg", "image/jpeg", tinyJpeg()))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("CARE_LOG_NOT_FOUND"));
+    }
+
+    /** Deleting an entry must not leave its photo behind on the volume. */
+    @Test
+    @Order(18)
+    void deletingACareLogRemovesItsPhotoFile() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SLEEP\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(multipart("/api/care-logs/" + id + "/photo")
+                        .file(new MockMultipartFile("file", "p.jpg", "image/jpeg", tinyJpeg()))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isOk());
+
+        long before = countStoredPhotos("care-logs");
+        mockMvc.perform(delete("/api/care-logs/" + id)).andExpect(status().isNoContent());
+        assertThat(countStoredPhotos("care-logs")).isEqualTo(before - 1);
+    }
+
+    /** The profile photo is the one image kept exactly as uploaded. */
+    @Test
+    @Order(19)
+    void profilePhotoIsStoredWithoutRecompression() throws Exception {
+        byte[] original = largeNoisyPng(1200, 900);
+        mockMvc.perform(multipart("/api/baby/photo")
+                        .file(new MockMultipartFile("file", "me.png", "image/png", original))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isOk());
+
+        MvcResult served = mockMvc.perform(get("/api/baby/photo"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "image/png"))
+                .andReturn();
+        assertThat(served.getResponse().getContentAsByteArray()).isEqualTo(original);
+    }
+
+    private static byte[] largeNoisyPng(int width, int height) throws Exception {
+        java.awt.image.BufferedImage image =
+                new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.util.Random random = new java.util.Random(7);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                image.setRGB(x, y, random.nextInt(0xFFFFFF));
+            }
+        }
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(image, "png", out);
+        return out.toByteArray();
+    }
+
+    private static byte[] tinyJpeg() throws Exception {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(
+                new java.awt.image.BufferedImage(8, 8, java.awt.image.BufferedImage.TYPE_INT_RGB), "jpeg", out);
+        return out.toByteArray();
+    }
+
+    private long countStoredPhotos(String subdir) throws Exception {
+        Path dir = Path.of(photoDirPath).resolve(subdir);
+        if (!Files.exists(dir)) {
+            return 0;
+        }
+        try (var files = Files.list(dir)) {
+            return files.count();
+        }
     }
 }

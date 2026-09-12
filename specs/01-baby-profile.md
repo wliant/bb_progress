@@ -12,7 +12,9 @@ Manage the single baby's profile: name, date of birth, gender, and one profile p
 - The birth record moves with the date of birth: correcting the date of birth re-dates it rather than
   being blocked by the "date of birth is after existing records" rule.
 - Single-baby invariant: `PUT /api/baby` creates the profile if absent, otherwise updates it. There is never more than one baby row.
-- Photo: jpeg/png/webp, max 10 MB. HEIC rejected with a localized, actionable error. Uploading a new photo replaces (and deletes) the old file. Stored on the photo docker volume; DB stores relative path only.
+- Photo: jpeg/png/webp, max 25 MB. HEIC rejected with a localized, actionable error. Uploading a new photo replaces (and deletes) the old file. Stored on the photo docker volume; DB stores relative path only.
+- The profile photo is **stored exactly as uploaded** — it is the one image kept at original
+  quality. Care-log and milestone photos are re-encoded to ≤1 MB instead (see spec 04).
 - Baby's age (derived from DOB, computed in SGT) is shown on the home page and used by growth charts and milestone grouping.
 
 ## API

@@ -17,8 +17,9 @@ spring:
     time-zone: Asia/Singapore
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 12MB
+      # Accept a photo straight off a phone; log photos are re-encoded to <=1MB on save.
+      max-file-size: 25MB
+      max-request-size: 30MB
 
 app:
   photo-dir: ${APP_PHOTO_DIR:./data/photos}

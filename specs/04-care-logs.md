@@ -4,7 +4,12 @@
 Quick, minimal logging of daily care events: feeding, sleep, diaper change. One tap creates an entry timestamped "now" (SGT); an optional free-text note can be added.
 
 ## Requirements
-- A care log has: type (FEEDING | SLEEP | DIAPER, required), logged_at (timestamp, defaults to now, editable, not in future), note (optional, ≤500 chars).
+- A care log has: type (FEEDING | SLEEP | DIAPER, required), logged_at (timestamp, defaults to now, editable, not in future), note (optional, ≤500 chars), photo (optional).
+- **Photo**: one per entry, added or replaced from the entry's edit dialog, and removable.
+  Uploads accept up to 25 MB so a photo straight off a phone goes through untouched; the server
+  then re-encodes it to JPEG at no more than 1 MB before storing. EXIF orientation is applied
+  during that re-encode so portrait photos are not stored sideways.
+  Deleting an entry deletes its photo file.
 - Entries can be edited (time, note) and deleted.
 - Day view: entries for a chosen date (default today in SGT), newest first, with per-type counts for the day.
 - Quick logging: large one-tap buttons for the three types on the home page and on the care page. A tap logs immediately with the current SGT time; a toast confirms with an option to add a note.
@@ -13,6 +18,7 @@ Quick, minimal logging of daily care events: feeding, sleep, diaper change. One 
 - `GET /api/care-logs?date=YYYY-MM-DD&type=FEEDING` → entries for that date (SGT day boundaries), date defaults to today SGT, type optional.
 - `POST /api/care-logs` body `{type, loggedAt?, note?}` → 201; loggedAt defaults to server now.
 - `PUT /api/care-logs/{id}` body `{loggedAt, note}`; `DELETE /api/care-logs/{id}`.
+- `PUT /api/care-logs/{id}/photo` multipart `file`; `GET /api/care-logs/{id}/photo`; `DELETE /api/care-logs/{id}/photo`.
 - Timestamps serialize as ISO-8601 with +08:00 offset.
 
 ## UI
@@ -27,5 +33,7 @@ Quick, minimal logging of daily care events: feeding, sleep, diaper change. One 
 - Tapping a quick button creates an entry visible immediately with the current SGT time, on the home page
   as well as the care page.
 - Tapping that entry from the home page opens the edit dialog, and a note added there persists.
+- A multi-megabyte phone photo uploads successfully and is stored at 1 MB or less; the served image
+  is right way up. Entries with a photo show a thumbnail in the list.
 - Day boundaries are SGT: an entry at 23:50 SGT appears on that SGT date regardless of server/browser TZ.
 - Counts per type update as entries are added/removed.

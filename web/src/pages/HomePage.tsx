@@ -7,7 +7,7 @@ import { RequireBaby } from '../components/RequireBaby'
 import { CareLogList } from '../features/care/CareLogList'
 import { CareLogEditDialog } from '../features/care/CareLogEditDialog'
 import { ageParts, todaySgt } from '../lib/dates'
-import type { Baby, CareLog, CareType } from '../api/types'
+import type { Baby, CareType } from '../api/types'
 
 const RECENT_LIMIT = 5
 
@@ -19,12 +19,14 @@ function HomeContent({ baby }: { baby: Baby }) {
   const { t } = useTranslation()
   const today = todaySgt()
   const { data: logs = [] } = useCareLogs(today)
-  const [editing, setEditing] = useState<CareLog | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const age = ageParts(baby.dateOfBirth, today)
   const counts: Record<CareType, number> = { FEEDING: 0, SLEEP: 0, DIAPER: 0 }
   for (const log of logs) counts[log.type] += 1
   const recent = logs.slice(0, RECENT_LIMIT)
+  // Derived, not held in state: an upload inside the dialog must be reflected there.
+  const editing = logs.find((log) => log.id === editingId) ?? null
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -72,12 +74,12 @@ function HomeContent({ baby }: { baby: Baby }) {
         ) : (
           <>
             <p className="mb-1 text-xs text-slate-400">{t('home.tapToEdit')}</p>
-            <CareLogList logs={recent} onSelect={setEditing} />
+            <CareLogList logs={recent} onSelect={(log) => setEditingId(log.id)} />
           </>
         )}
       </section>
 
-      {editing && <CareLogEditDialog log={editing} onClose={() => setEditing(null)} />}
+      {editing && <CareLogEditDialog log={editing} onClose={() => setEditingId(null)} />}
     </div>
   )
 }
