@@ -3,6 +3,7 @@ package com.bb.progress.baby;
 import com.bb.progress.baby.BabyDtos.BabyRequest;
 import com.bb.progress.carelog.CareLogRepository;
 import com.bb.progress.common.ApiException;
+import com.bb.progress.growth.GrowthRecord;
 import com.bb.progress.growth.GrowthRecordRepository;
 import com.bb.progress.milestone.MilestoneAchievement;
 import com.bb.progress.milestone.MilestoneAchievementRepository;
@@ -37,6 +38,12 @@ public class BabyService {
                 .orElseThrow(() -> ApiException.notFound("BABY_NOT_FOUND", "Baby profile not created yet"));
     }
 
+    /** The growth record holding the birth measurements, if any were entered. */
+    @Transactional(readOnly = true)
+    public GrowthRecord getBirthRecord() {
+        return growthRecords.findByBirthTrue().orElse(null);
+    }
+
     @Transactional
     public Baby upsert(BabyRequest request) {
         Baby baby = repository.findFirstByOrderByCreatedAtAsc().orElse(null);
@@ -50,7 +57,40 @@ public class BabyService {
             baby.setDateOfBirth(request.dateOfBirth());
             baby.setGender(request.gender());
         }
-        return repository.save(baby);
+        baby.setTimeOfBirth(request.timeOfBirth());
+        Baby saved = repository.save(baby);
+        applyBirthMeasurements(saved.getDateOfBirth(), request);
+        return saved;
+    }
+
+    /**
+     * Birth measurements are kept as the growth record dated at birth, so they plot as the
+     * first point on the chart. The record follows the date of birth when it is corrected.
+     */
+    private void applyBirthMeasurements(LocalDate dateOfBirth, BabyRequest request) {
+        GrowthRecord record = growthRecords.findByBirthTrue()
+                // Adopt a record already sitting on the birth date rather than colliding with it.
+                .or(() -> growthRecords.findByMeasuredOn(dateOfBirth))
+                .orElse(null);
+
+        if (!request.hasBirthMeasurements()) {
+            if (record != null && record.isBirth()) {
+                growthRecords.delete(record);
+            }
+            return;
+        }
+
+        if (record == null) {
+            record = new GrowthRecord(dateOfBirth, request.birthWeightKg(), request.birthLengthCm(),
+                    request.birthHeadCircumferenceCm(), null);
+        } else {
+            record.setMeasuredOn(dateOfBirth);
+            record.setWeightKg(request.birthWeightKg());
+            record.setHeightCm(request.birthLengthCm());
+            record.setHeadCircumferenceCm(request.birthHeadCircumferenceCm());
+        }
+        record.setBirth(true);
+        growthRecords.save(record);
     }
 
     /**
@@ -58,7 +98,7 @@ public class BabyService {
      * forward past existing records would leave them stranded at a negative age on the chart.
      */
     private void requireDateOfBirthFitsExistingRecords(LocalDate dateOfBirth) {
-        growthRecords.findFirstByOrderByMeasuredOnAsc()
+        growthRecords.findFirstByBirthFalseOrderByMeasuredOnAsc()
                 .filter(record -> record.getMeasuredOn().isBefore(dateOfBirth))
                 .ifPresent(record -> {
                     throw ApiException.badRequest("DOB_AFTER_RECORDS",

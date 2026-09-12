@@ -6,10 +6,25 @@ export type MilestoneCategory = 'SOCIAL' | 'LANGUAGE' | 'COGNITIVE' | 'MOTOR'
 export interface Baby {
   name: string
   dateOfBirth: string
+  /** ISO local time from the API, e.g. "14:30:00"; null when not recorded. */
+  timeOfBirth: string | null
   gender: Gender
   hasPhoto: boolean
   /** Changes whenever the photo is replaced; used to bust the browser's image cache. */
   photoVersion: string | null
+  birthWeightKg: number | null
+  birthLengthCm: number | null
+  birthHeadCircumferenceCm: number | null
+}
+
+export interface BabyInput {
+  name: string
+  dateOfBirth: string
+  timeOfBirth?: string | null
+  gender: Gender
+  birthWeightKg?: number | null
+  birthLengthCm?: number | null
+  birthHeadCircumferenceCm?: number | null
 }
 
 export interface GrowthRecord {
@@ -19,6 +34,8 @@ export interface GrowthRecord {
   heightCm: number | null
   headCircumferenceCm: number | null
   note: string | null
+  /** The record owned by the profile's birth measurements. */
+  birth: boolean
 }
 
 export interface GrowthRecordInput {

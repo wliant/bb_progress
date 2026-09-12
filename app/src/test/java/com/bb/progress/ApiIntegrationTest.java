@@ -396,4 +396,77 @@ class ApiIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("BABY_NOT_FOUND"));
     }
+
+    /** Birth details are captured on the profile; measurements become the first growth point. */
+    @Test
+    @Order(13)
+    void profileCapturesTimeOfBirthAndBirthMeasurements() throws Exception {
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"小宝","dateOfBirth":"2026-01-15","timeOfBirth":"14:30",
+                                 "gender":"FEMALE","birthWeightKg":3.25,"birthLengthCm":49.5,
+                                 "birthHeadCircumferenceCm":34.0}"""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timeOfBirth").value("14:30:00"))
+                .andExpect(jsonPath("$.birthWeightKg").value(3.25))
+                .andExpect(jsonPath("$.birthLengthCm").value(49.5))
+                .andExpect(jsonPath("$.birthHeadCircumferenceCm").value(34.0));
+
+        mockMvc.perform(get("/api/baby"))
+                .andExpect(jsonPath("$.timeOfBirth").value("14:30:00"))
+                .andExpect(jsonPath("$.birthWeightKg").value(3.25));
+
+        // Stored once, as the birth-flagged growth record on the date of birth.
+        mockMvc.perform(get("/api/growth-records"))
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[0].measuredOn").value("2026-01-15"))
+                .andExpect(jsonPath("$[0].birth").value(true))
+                .andExpect(jsonPath("$[0].heightCm").value(49.5));
+    }
+
+    @Test
+    @Order(14)
+    void correctingTheDateOfBirthMovesTheBirthRecordInsteadOfBeingRejected() throws Exception {
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"小宝","dateOfBirth":"2026-01-20","timeOfBirth":"14:30",
+                                 "gender":"FEMALE","birthWeightKg":3.25,"birthLengthCm":49.5}"""))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/growth-records"))
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[0].measuredOn").value("2026-01-20"))
+                .andExpect(jsonPath("$[0].birth").value(true));
+
+        // A later ordinary record still blocks moving the date of birth past it.
+        mockMvc.perform(post("/api/growth-records")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"measuredOn\":\"2026-02-10\",\"weightKg\":4.4}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"小宝","dateOfBirth":"2026-03-01","gender":"FEMALE",
+                                 "birthWeightKg":3.25}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DOB_AFTER_RECORDS"));
+    }
+
+    @Test
+    @Order(15)
+    void clearingBirthMeasurementsRemovesTheBirthRecordButKeepsOtherRecords() throws Exception {
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"小宝\",\"dateOfBirth\":\"2026-01-20\",\"gender\":\"FEMALE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.birthWeightKg").doesNotExist())
+                .andExpect(jsonPath("$.timeOfBirth").doesNotExist());
+
+        mockMvc.perform(get("/api/growth-records"))
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[0].measuredOn").value("2026-02-10"))
+                .andExpect(jsonPath("$[0].birth").value(false));
+    }
 }

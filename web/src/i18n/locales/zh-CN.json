@@ -1,5 +1,7 @@
 {
-  "app": { "title": "宝宝成长记录" },
+  "app": {
+    "title": "宝宝成长记录"
+  },
   "nav": {
     "home": "首页",
     "profile": "宝宝档案",
@@ -62,7 +64,11 @@
     "notCreated": "还没有宝宝档案，先创建一个吧！",
     "create": "创建档案",
     "ageLabel": "{{months}} 个月 {{days}} 天",
-    "photoTypeError": "只支持 JPEG、PNG 或 WebP 格式的照片"
+    "photoTypeError": "只支持 JPEG、PNG 或 WebP 格式的照片",
+    "timeOfBirth": "出生时间",
+    "birthMeasurements": "出生时测量",
+    "birthMeasurementsHint": "选填。填写后会作为生长曲线的第一个数据点。",
+    "birthLength": "身长"
   },
   "growth": {
     "title": "生长曲线",
@@ -81,7 +87,8 @@
     "percentileNote": "参考曲线：WHO 儿童生长标准 P3 / P15 / P50 / P85 / P97",
     "atLeastOne": "至少填写一项测量值",
     "duplicateDate": "这一天已经有记录了",
-    "baby": "宝宝"
+    "baby": "宝宝",
+    "atBirth": "出生时"
   },
   "milestones": {
     "title": "里程碑",
@@ -110,12 +117,24 @@
     "todayCounts": "今日记录",
     "noLogs": "这一天还没有记录",
     "time": "时间",
-    "addNote": "添加备注"
+    "addNote": "添加备注",
+    "notePlaceholder": {
+      "FEEDING": "例如：150ml 或 左侧 10 分钟",
+      "SLEEP": "例如：小睡 1 小时",
+      "DIAPER": "例如：湿 / 脏"
+    }
   },
   "home": {
     "welcome": "欢迎回来",
     "age": "月龄",
-    "quickActions": "快速记录"
+    "quickActions": "快速记录",
+    "recent": "最近记录",
+    "viewAll": "查看全部",
+    "tapToEdit": "点击记录可修改时间或添加备注"
   },
-  "language": { "label": "语言", "zh": "中文", "en": "English" }
+  "language": {
+    "label": "语言",
+    "zh": "中文",
+    "en": "English"
+  }
 }

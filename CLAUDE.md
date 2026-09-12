@@ -52,10 +52,11 @@ npx vitest run src/pages/HomePage.test.tsx   # single file
 npm run typecheck && npm run lint
 npm run build
 
-# e2e/ (run from e2e/; stack must be up)
-npm test                          # all specs
+# e2e/ (run from e2e/)
+npm run test:isolated             # PREFERRED: throwaway stack on :8099, torn down after
+npm run test:isolated tests/growth.spec.ts   # single spec, same isolation
+npm test                          # against an already-running stack — DESTRUCTIVE, see below
 npx playwright test tests/growth.spec.ts     # single spec
-E2E_BASE_URL=http://localhost:8090 npm test  # custom port
 
 # stack (repo root; needs .env — copy from .env.example)
 docker compose up -d --build --force-recreate     # see note below: --force-recreate is required
@@ -68,6 +69,12 @@ curl -X DELETE http://localhost:8090/api/baby     # wipe profile + all records (
 pager's, so a failing Gradle build reports success. Redirect to a file and check `$?` instead:
 `./gradlew test integrationTest > /tmp/t.log 2>&1; echo $?`. Confirm tests actually ran by
 reading `app/build/test-results/*/`; a compile error produces no results at all.
+
+**The e2e specs are destructive** — they delete records and `DELETE /api/baby` to test the
+first-run state. Never point them at an instance holding real data. `e2e/run-isolated.sh`
+(`npm run test:isolated`) brings up a separate `bbprogress-e2e` stack on its own port, runs the
+suite there, and tears it down with its volumes, which is what the multi-instance requirement
+exists for.
 
 **`docker compose up -d --build` can leave the old container running** even after it rebuilds
 the image, so verification silently tests stale code. Always add `--force-recreate`, and sanity

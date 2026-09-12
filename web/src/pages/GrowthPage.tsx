@@ -208,7 +208,14 @@ function GrowthContent({ baby }: { baby: Baby }) {
           <ul className="divide-y divide-slate-100">
             {[...records].reverse().map((record) => (
               <li key={record.id} className="flex items-center gap-3 px-2 py-3 text-sm">
-                <span className="w-24 shrink-0 font-medium text-slate-700">{record.measuredOn}</span>
+                <span className="w-24 shrink-0 font-medium text-slate-700">
+                  {record.measuredOn}
+                  {record.birth && (
+                    <span className="ml-1 rounded bg-rose-50 px-1 py-0.5 text-[10px] font-medium text-rose-600">
+                      {t('growth.atBirth')}
+                    </span>
+                  )}
+                </span>
                 <span className="flex-1 text-slate-600">
                   {record.weightKg != null && `${record.weightKg} ${t('growth.weightUnit')}  `}
                   {record.heightCm != null && `${record.heightCm} ${t('growth.heightUnit')}  `}

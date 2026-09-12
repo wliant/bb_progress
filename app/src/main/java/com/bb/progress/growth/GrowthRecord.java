@@ -32,6 +32,10 @@ public class GrowthRecord {
 
     private String note;
 
+    /** Marks the single record owned by the baby profile's birth measurements. */
+    @Column(name = "is_birth", nullable = false)
+    private boolean birth;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -104,5 +108,13 @@ public class GrowthRecord {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public boolean isBirth() {
+        return birth;
+    }
+
+    public void setBirth(boolean birth) {
+        this.birth = birth;
     }
 }

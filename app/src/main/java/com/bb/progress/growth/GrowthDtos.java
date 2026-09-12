@@ -32,11 +32,12 @@ public final class GrowthDtos {
             BigDecimal weightKg,
             BigDecimal heightCm,
             BigDecimal headCircumferenceCm,
-            String note) {
+            String note,
+            boolean birth) {
 
         public static GrowthRecordResponse from(GrowthRecord record) {
             return new GrowthRecordResponse(record.getId(), record.getMeasuredOn(), record.getWeightKg(),
-                    record.getHeightCm(), record.getHeadCircumferenceCm(), record.getNote());
+                    record.getHeightCm(), record.getHeadCircumferenceCm(), record.getNote(), record.isBirth());
         }
     }
 }

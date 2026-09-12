@@ -34,12 +34,12 @@ public class BabyController {
 
     @GetMapping
     public BabyResponse get() {
-        return BabyResponse.from(service.get());
+        return BabyResponse.from(service.get(), service.getBirthRecord());
     }
 
     @PutMapping
     public BabyResponse upsert(@Valid @RequestBody BabyRequest request) {
-        return BabyResponse.from(service.upsert(request));
+        return BabyResponse.from(service.upsert(request), service.getBirthRecord());
     }
 
     /** Wipes the profile and all records. Deliberately not surfaced in the UI. */
@@ -52,7 +52,7 @@ public class BabyController {
     @PutMapping(path = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public BabyResponse uploadPhoto(@RequestParam("file") MultipartFile file) {
         service.updatePhoto(file);
-        return BabyResponse.from(service.get());
+        return BabyResponse.from(service.get(), service.getBirthRecord());
     }
 
     @GetMapping("/photo")

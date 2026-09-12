@@ -5,6 +5,28 @@ import { ErrorState } from '../components/ErrorState'
 import type { Gender } from '../api/types'
 import { todaySgt } from '../lib/dates'
 
+interface FormState {
+  name: string
+  dateOfBirth: string
+  timeOfBirth: string
+  gender: Gender
+  birthWeightKg: string
+  birthLengthCm: string
+  birthHeadCircumferenceCm: string
+}
+
+const EMPTY: FormState = {
+  name: '',
+  dateOfBirth: '',
+  timeOfBirth: '',
+  gender: 'FEMALE',
+  birthWeightKg: '',
+  birthLengthCm: '',
+  birthHeadCircumferenceCm: '',
+}
+
+const numberOrNull = (value: string) => (value === '' ? null : Number(value))
+
 export function ProfilePage() {
   const { t } = useTranslation()
   const { data: baby, isLoading, isError, error, refetch } = useBaby()
@@ -12,25 +34,42 @@ export function ProfilePage() {
   const uploadPhoto = useUploadBabyPhoto()
   const fileInput = useRef<HTMLInputElement>(null)
 
-  const [name, setName] = useState('')
-  const [dateOfBirth, setDateOfBirth] = useState('')
-  const [gender, setGender] = useState<Gender>('FEMALE')
+  const [form, setForm] = useState<FormState>(EMPTY)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (baby) {
-      setName(baby.name)
-      setDateOfBirth(baby.dateOfBirth)
-      setGender(baby.gender)
+      setForm({
+        name: baby.name,
+        dateOfBirth: baby.dateOfBirth,
+        // The API sends ISO local time ("14:30:00"); <input type="time"> wants HH:mm.
+        timeOfBirth: baby.timeOfBirth?.slice(0, 5) ?? '',
+        gender: baby.gender,
+        birthWeightKg: baby.birthWeightKg?.toString() ?? '',
+        birthLengthCm: baby.birthLengthCm?.toString() ?? '',
+        birthHeadCircumferenceCm: baby.birthHeadCircumferenceCm?.toString() ?? '',
+      })
     }
   }, [baby])
+
+  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((current) => ({ ...current, [key]: value }))
+  }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaved(false)
     // Failures surface as a toast via the shared mutation error handler.
     saveBaby.mutate(
-      { name, dateOfBirth, gender },
+      {
+        name: form.name,
+        dateOfBirth: form.dateOfBirth,
+        timeOfBirth: form.timeOfBirth || null,
+        gender: form.gender,
+        birthWeightKg: numberOrNull(form.birthWeightKg),
+        birthLengthCm: numberOrNull(form.birthLengthCm),
+        birthHeadCircumferenceCm: numberOrNull(form.birthHeadCircumferenceCm),
+      },
       {
         onSuccess: () => {
           setSaved(true)
@@ -91,23 +130,34 @@ export function ProfilePage() {
           <input
             required
             maxLength={100}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={form.name}
+            onChange={(e) => set('name', e.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2 text-base"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-          {t('profile.dateOfBirth')}
-          <input
-            required
-            type="date"
-            max={todaySgt()}
-            value={dateOfBirth}
-            onChange={(e) => setDateOfBirth(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-base"
-          />
-        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+            {t('profile.dateOfBirth')}
+            <input
+              required
+              type="date"
+              max={todaySgt()}
+              value={form.dateOfBirth}
+              onChange={(e) => set('dateOfBirth', e.target.value)}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-base"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+            {t('profile.timeOfBirth')}
+            <input
+              type="time"
+              value={form.timeOfBirth}
+              onChange={(e) => set('timeOfBirth', e.target.value)}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-base"
+            />
+          </label>
+        </div>
 
         <fieldset className="flex flex-col gap-1 text-sm font-medium text-slate-700">
           <legend>{t('profile.gender')}</legend>
@@ -116,20 +166,56 @@ export function ProfilePage() {
               <label
                 key={g}
                 className={`flex-1 cursor-pointer rounded-lg border px-3 py-2 text-center ${
-                  gender === g ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-slate-300'
+                  form.gender === g ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-slate-300'
                 }`}
               >
                 <input
                   type="radio"
                   name="gender"
                   value={g}
-                  checked={gender === g}
-                  onChange={() => setGender(g)}
+                  checked={form.gender === g}
+                  onChange={() => set('gender', g)}
                   className="sr-only"
                 />
                 {g === 'FEMALE' ? t('profile.female') : t('profile.male')}
               </label>
             ))}
+          </div>
+        </fieldset>
+
+        <fieldset className="rounded-xl border border-slate-200 p-4">
+          <legend className="px-1 text-sm font-medium text-slate-700">
+            {t('profile.birthMeasurements')}
+          </legend>
+          <p className="mb-3 text-xs text-slate-400">{t('profile.birthMeasurementsHint')}</p>
+          <div className="grid grid-cols-3 gap-3">
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+              {t('growth.weight')} ({t('growth.weightUnit')})
+              <input
+                type="number" step="0.01" min="0.3" max="40"
+                value={form.birthWeightKg}
+                onChange={(e) => set('birthWeightKg', e.target.value)}
+                className="rounded-lg border border-slate-300 px-2 py-2 text-base"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+              {t('profile.birthLength')} ({t('growth.heightUnit')})
+              <input
+                type="number" step="0.1" min="20" max="150"
+                value={form.birthLengthCm}
+                onChange={(e) => set('birthLengthCm', e.target.value)}
+                className="rounded-lg border border-slate-300 px-2 py-2 text-base"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+              {t('growth.headCircumference')} ({t('growth.headUnit')})
+              <input
+                type="number" step="0.1" min="20" max="70"
+                value={form.birthHeadCircumferenceCm}
+                onChange={(e) => set('birthHeadCircumferenceCm', e.target.value)}
+                className="rounded-lg border border-slate-300 px-2 py-2 text-base"
+              />
+            </label>
           </div>
         </fieldset>
 

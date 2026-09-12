@@ -1,5 +1,7 @@
 {
-  "app": { "title": "Baby Progress" },
+  "app": {
+    "title": "Baby Progress"
+  },
   "nav": {
     "home": "Home",
     "profile": "Profile",
@@ -62,7 +64,11 @@
     "notCreated": "No baby profile yet — create one to get started!",
     "create": "Create profile",
     "ageLabel": "{{months}} months {{days}} days",
-    "photoTypeError": "Only JPEG, PNG or WebP photos are supported"
+    "photoTypeError": "Only JPEG, PNG or WebP photos are supported",
+    "timeOfBirth": "Time of birth",
+    "birthMeasurements": "Measurements at birth",
+    "birthMeasurementsHint": "Optional. These become the first point on the growth chart.",
+    "birthLength": "Length"
   },
   "growth": {
     "title": "Growth",
@@ -81,7 +87,8 @@
     "percentileNote": "Reference curves: WHO Child Growth Standards P3 / P15 / P50 / P85 / P97",
     "atLeastOne": "Fill in at least one measurement",
     "duplicateDate": "A record for this date already exists",
-    "baby": "Baby"
+    "baby": "Baby",
+    "atBirth": "At birth"
   },
   "milestones": {
     "title": "Milestones",
@@ -110,12 +117,24 @@
     "todayCounts": "Today",
     "noLogs": "No entries for this day",
     "time": "Time",
-    "addNote": "Add note"
+    "addNote": "Add note",
+    "notePlaceholder": {
+      "FEEDING": "e.g. 150ml or left side 10 min",
+      "SLEEP": "e.g. nap, 1 hour",
+      "DIAPER": "e.g. wet / dirty"
+    }
   },
   "home": {
     "welcome": "Welcome back",
     "age": "Age",
-    "quickActions": "Quick log"
+    "quickActions": "Quick log",
+    "recent": "Recent",
+    "viewAll": "View all",
+    "tapToEdit": "Tap an entry to change the time or add a note"
   },
-  "language": { "label": "Language", "zh": "中文", "en": "English" }
+  "language": {
+    "label": "Language",
+    "zh": "中文",
+    "en": "English"
+  }
 }

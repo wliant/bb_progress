@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiGet, apiSend, apiUpload, ApiError } from './client'
 import type {
   Baby,
+  BabyInput,
   CareLog,
   CareType,
   Gender,
@@ -30,8 +31,7 @@ export function useBaby() {
 export function useSaveBaby() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (baby: { name: string; dateOfBirth: string; gender: Gender }) =>
-      apiSend<Baby>('PUT', '/api/baby', baby),
+    mutationFn: (baby: BabyInput) => apiSend<Baby>('PUT', '/api/baby', baby),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['baby'] }),
   })
 }

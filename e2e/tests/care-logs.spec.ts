@@ -20,3 +20,35 @@ test('one-tap feeding log appears immediately with SGT time', async ({ page }) =
   // Count for feeding is 1.
   await expect(page.getByText(/🍼 1/)).toBeVisible()
 })
+
+/** The recent list on the home page is how a one-tap entry gets its detail. */
+test('a quick log can be enriched from the home page', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: /喂奶/ }).click()
+  await expect(page.getByRole('status')).toContainText('已记录')
+
+  await expect(page.getByText('最近记录')).toBeVisible()
+  await page.locator('li', { hasText: '喂奶' }).first().click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  await dialog.getByLabel(/备注/).fill('150ml')
+  await dialog.getByRole('button', { name: '保存' }).click()
+
+  await expect(dialog).toBeHidden()
+  await expect(page.getByText(/150ml/)).toBeVisible()
+
+  // The same entry shows the note on the care page.
+  await page.goto('/care')
+  await expect(page.getByText(/150ml/)).toBeVisible()
+})
+
+test('an entry can be deleted from its dialog', async ({ page }) => {
+  await page.getByRole('button', { name: /换尿布/ }).click()
+  await expect(page.getByRole('status')).toContainText('已记录')
+
+  await page.locator('li', { hasText: '换尿布' }).first().click()
+  await page.getByRole('dialog').getByRole('button', { name: '删除' }).click()
+
+  await expect(page.getByText('这一天还没有记录')).toBeVisible()
+})

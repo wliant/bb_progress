@@ -6,6 +6,8 @@ Log the baby's weight, height/length, and head circumference over time; view the
 ## Requirements
 - A growth record has: measured_on (date, required, unique — one record per day, not in the future, not before DOB), weight_kg (0.3–40, 2dp), height_cm (20–150, 1dp), head_circumference_cm (20–70, 1dp), note (optional). At least one measurement must be present.
 - Records are editable and deletable.
+- At most one record is flagged as the **birth record**. It is created and maintained from the baby profile's
+  birth measurements (see spec 01), is dated at the date of birth, and is labelled as such in the list.
 - Charts: one per measure (weight / height / head circumference). X axis = age in months (from DOB to measured_on), Y = value. Baby's data drawn as a bold line with dots; WHO percentile curves P3/P15/P50/P85/P97 as muted dashed lines, chosen by the baby's gender.
 - WHO reference: WHO Child Growth Standards LMS tables, bundled as resources (3 measures × 2 genders, 0–36 months by month). Percentile value = M·(1+L·S·z)^(1/L). Attribution in README (CC BY-NC-SA).
 

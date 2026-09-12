@@ -6,8 +6,12 @@ export const testBaby: Baby = {
   name: '小测试',
   dateOfBirth: '2026-01-15',
   gender: 'FEMALE',
+  timeOfBirth: '14:30:00',
   hasPhoto: false,
   photoVersion: null,
+  birthWeightKg: 3.25,
+  birthLengthCm: 49.5,
+  birthHeadCircumferenceCm: 34.0,
 }
 
 export const testGrowthRecords: GrowthRecord[] = [
@@ -18,6 +22,16 @@ export const testGrowthRecords: GrowthRecord[] = [
     heightCm: 58.5,
     headCircumferenceCm: null,
     note: null,
+    birth: false,
+  },
+  {
+    id: 'r0',
+    measuredOn: '2026-01-15',
+    weightKg: 3.25,
+    heightCm: 49.5,
+    headCircumferenceCm: 34.0,
+    note: null,
+    birth: true,
   },
 ]
 

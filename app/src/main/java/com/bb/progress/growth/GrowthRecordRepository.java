@@ -12,5 +12,8 @@ public interface GrowthRecordRepository extends JpaRepository<GrowthRecord, UUID
 
     Optional<GrowthRecord> findByMeasuredOn(LocalDate measuredOn);
 
-    Optional<GrowthRecord> findFirstByOrderByMeasuredOnAsc();
+    Optional<GrowthRecord> findByBirthTrue();
+
+    /** The birth record re-dates with the profile, so it is excluded from that check. */
+    Optional<GrowthRecord> findFirstByBirthFalseOrderByMeasuredOnAsc();
 }

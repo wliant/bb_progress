@@ -4,7 +4,8 @@
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",
-    "report": "playwright show-report"
+    "report": "playwright show-report",
+    "test:isolated": "./run-isolated.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0"

@@ -55,8 +55,12 @@ cd web && npm run dev          # UI on :5173, /api proxied to :8080
 cd app && ./gradlew test              # backend unit tests
 cd app && ./gradlew integrationTest   # backend integration tests (needs Docker)
 cd web && npm test                    # frontend tests (Vitest)
-cd e2e && npm test                    # e2e (stack must be up; E2E_BASE_URL to override port)
+cd e2e && npm run test:isolated       # e2e on a throwaway stack (:8099), torn down afterwards
 ```
+
+The e2e specs clear records and reset the profile, so run them with `test:isolated` rather than
+against the instance holding your data. `cd e2e && npm test` targets whatever is on `E2E_BASE_URL`
+(default `:8090`) and **will wipe it**.
 
 ## Data sources & attribution
 

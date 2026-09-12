@@ -11,6 +11,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
@@ -25,6 +26,9 @@ public class Baby {
 
     @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
+
+    @Column(name = "time_of_birth")
+    private LocalTime timeOfBirth;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -78,6 +82,14 @@ public class Baby {
 
     public void setDateOfBirth(LocalDate dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
+    }
+
+    public LocalTime getTimeOfBirth() {
+        return timeOfBirth;
+    }
+
+    public void setTimeOfBirth(LocalTime timeOfBirth) {
+        this.timeOfBirth = timeOfBirth;
     }
 
     public Gender getGender() {
