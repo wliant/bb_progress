@@ -2,6 +2,8 @@
 
 Personal baby development monitoring app for a single baby. Bilingual (简体中文 / English, defaults to Chinese), Singapore Time everywhere.
 
+Personal, self-hosted, and not medical advice — see [Data sources & attribution](#data-sources--attribution).
+
 **Features**: baby profile (with photo, birth details and gestational age) · growth records with WHO percentile charts · CDC developmental milestone checklist (bilingual) · quick daily care logging (feeding / sleep / diaper) · photo, video and voice attachments on every entry and milestone (voice can be recorded in the app) · a media gallery across everything.
 
 ## Stack
@@ -118,3 +120,11 @@ against the instance holding your data. `cd e2e && npm test` targets whatever is
 - Milestone checklist is based on the CDC **"Learn the Signs. Act Early."** program milestones (2022 revision), ages 2–36 months: <https://www.cdc.gov/ncbddd/actearly/milestones/>. Simplified Chinese titles follow CDC's Chinese-language checklists.
 
 This app is a personal record-keeping tool, not medical advice. Discuss your child's growth and development with your pediatrician.
+
+## Licence
+
+This project's own code is MIT licensed — see [LICENSE](LICENSE).
+
+The bundled reference data is **not** covered by that licence and keeps its publishers' terms; the
+WHO growth standards in particular are CC BY-NC-SA 3.0 IGO, which forbids commercial use. See
+[NOTICE](NOTICE) for the full breakdown of what is bundled and under what terms.

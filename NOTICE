@@ -1,0 +1,52 @@
+bb-progress bundles reference data published by third parties. The MIT licence
+in LICENSE covers this project's own source code only — it does not, and cannot,
+relicense the material below, which remains under its publishers' terms.
+
+--------------------------------------------------------------------------------
+WHO Child Growth Standards
+    app/src/main/resources/who/*.json
+
+    LMS parameters for weight-for-age, length/height-for-age and
+    head-circumference-for-age, birth to 36 months, derived from the World Health
+    Organization's published expanded tables.
+
+    © World Health Organization. Licensed CC BY-NC-SA 3.0 IGO
+    (Attribution — NonCommercial — ShareAlike).
+    https://creativecommons.org/licenses/by-nc-sa/3.0/igo/
+    https://www.who.int/tools/child-growth-standards
+
+    Note the NonCommercial term: this data may not be used commercially, whatever
+    the MIT licence permits for the surrounding code.
+
+--------------------------------------------------------------------------------
+INTERGROWTH-21st Newborn Size Standards
+    app/src/main/resources/ig21/*.json
+
+    Skew-t parameters (mu, sigma, nu, tau) for birth weight, length and head
+    circumference from 33+0 to 42+6 weeks, from the project's published
+    parameter workbooks.
+
+    Villar J, et al. International standards for newborn weight, length, and head
+    circumference by gestational age and sex: the Newborn Cross-Sectional Study of
+    the INTERGROWTH-21st Project. Lancet 2014;384(9946):857-68.
+    https://doi.org/10.1016/S0140-6736(14)60932-6
+    https://intergrowth21.com/tools-resources/newborn-size
+
+    The project's site does not state explicit licence terms for these files;
+    confirm them with the publisher before any use beyond personal record-keeping.
+
+--------------------------------------------------------------------------------
+CDC "Learn the Signs. Act Early." developmental milestones
+    app/src/main/resources/db/migration/V4__seed_milestone_definitions.sql
+
+    Milestone checklist text (2022 revision), ages 2-36 months, with Simplified
+    Chinese following the CDC's Chinese-language checklists.
+
+    U.S. Centers for Disease Control and Prevention.
+    https://www.cdc.gov/ncbddd/actearly/milestones/
+    Works of the U.S. federal government are generally not subject to copyright
+    within the United States.
+
+--------------------------------------------------------------------------------
+This project is a personal record-keeping tool, not medical advice or a screening
+instrument. Discuss your child's growth and development with a clinician.
