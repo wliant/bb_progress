@@ -16,6 +16,11 @@ export DB_NAME=bb
 export DB_USER=bb
 export DB_PASSWORD=e2e-throwaway
 export TZ=Asia/Singapore
+# The stack's own MinIO; keys are throwaway and the volume is destroyed with the stack.
+export S3_BUCKET=bb-progress
+export S3_ACCESS_KEY=e2eaccess
+export S3_SECRET_KEY=e2esecret-throwaway
+export S3_REGION=us-east-1
 
 cleanup() {
   (cd "$ROOT" && docker compose down -v >/dev/null 2>&1)

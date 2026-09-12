@@ -8,9 +8,7 @@ RUN ./gradlew --no-daemon bootJar
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-RUN useradd --system --uid 1001 appuser \
-    && mkdir -p /data/photos \
-    && chown -R appuser /data/photos
+RUN useradd --system --uid 1001 appuser
 COPY --from=build /build/build/libs/*.jar app.jar
 USER appuser
 ENV TZ=Asia/Singapore

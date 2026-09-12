@@ -14,18 +14,38 @@ services:
       timeout: 3s
       retries: 12
 
+  minio:
+    # S3-compatible object storage so the stack needs no AWS account and works offline.
+    # Point the app at real AWS S3 instead by clearing S3_ENDPOINT in .env.
+    image: minio/minio:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    volumes:
+      - photo-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
   app:
     build: ./app
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      APP_PHOTO_DIR: /data/photos
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_REGION: ${S3_REGION:-us-east-1}
       TZ: ${TZ:-Asia/Singapore}
-    volumes:
-      - photo-data:/data/photos
     depends_on:
       db:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     healthcheck:
       # The port only opens once the Spring context (incl. Flyway) is up.

@@ -10,8 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -38,14 +36,11 @@ import org.springframework.test.web.servlet.MvcResult;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ApiIntegrationTest {
 
-    static String photoDirPath;
+    @Autowired
+    software.amazon.awssdk.services.s3.S3Client s3;
 
-    @org.springframework.test.context.DynamicPropertySource
-    static void photoDir(org.springframework.test.context.DynamicPropertyRegistry registry) throws Exception {
-        Path dir = Files.createTempDirectory("bb-progress-photos");
-        photoDirPath = dir.toString();
-        registry.add("app.photo-dir", dir::toString);
-    }
+    @Autowired
+    com.bb.progress.photo.S3Properties s3Properties;
 
     @Autowired
     MockMvc mockMvc;
@@ -548,10 +543,10 @@ class ApiIntegrationTest {
                 .andExpect(jsonPath("$.code").value("CARE_LOG_NOT_FOUND"));
     }
 
-    /** Deleting an entry must not leave its photo behind on the volume. */
+    /** Deleting an entry must not leave its object behind in storage. */
     @Test
     @Order(18)
-    void deletingACareLogRemovesItsPhotoFile() throws Exception {
+    void deletingACareLogRemovesItsStoredObject() throws Exception {
         MvcResult created = mockMvc.perform(post("/api/care-logs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"SLEEP\"}"))
@@ -774,7 +769,7 @@ class ApiIntegrationTest {
     /** A reset deletes rows in bulk, so every photo must be removed explicitly alongside them. */
     @Test
     @Order(25)
-    void resetLeavesNoOrphanedPhotoFiles() throws Exception {
+    void resetLeavesNoOrphanedObjects() throws Exception {
         mockMvc.perform(put("/api/baby")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"小宝\",\"dateOfBirth\":\"2026-01-15\",\"gender\":\"FEMALE\"}"))
@@ -836,13 +831,12 @@ class ApiIntegrationTest {
         return out.toByteArray();
     }
 
-    private long countStoredPhotos(String subdir) throws Exception {
-        Path dir = Path.of(photoDirPath).resolve(subdir);
-        if (!Files.exists(dir)) {
-            return 0;
-        }
-        try (var files = Files.list(dir)) {
-            return files.count();
-        }
+    /** Objects stored under a key prefix, thumbnails included. */
+    private long countStoredPhotos(String prefix) {
+        return s3.listObjectsV2(software.amazon.awssdk.services.s3.model.ListObjectsV2Request.builder()
+                        .bucket(s3Properties.bucket())
+                        .prefix(prefix + "/")
+                        .build())
+                .contents().size();
     }
 }

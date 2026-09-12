@@ -9,7 +9,7 @@ Quick, minimal logging of daily care events: feeding, sleep, diaper change. One 
   Uploads accept up to 25 MB so a photo straight off a phone goes through untouched; the server
   then re-encodes it to JPEG at no more than 1 MB before storing. EXIF orientation is applied
   during that re-encode so portrait photos are not stored sideways.
-  Deleting an entry deletes its photo file.
+  Deleting an entry deletes its stored object.
 - Entries can be edited (time, note) and deleted.
 - Day view: entries for a chosen date (default today in SGT), newest first, with per-type counts for the day.
 - Quick logging: large one-tap buttons for the three types on the home page and on the care page. A tap logs immediately with the current SGT time; a toast confirms with an option to add a note.

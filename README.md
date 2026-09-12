@@ -11,6 +11,7 @@ Personal baby development monitoring app for a single baby. Bilingual (简体中
 | `app/` | Java 21, Spring Boot 4, PostgreSQL, Flyway, Gradle (Kotlin DSL) |
 | `web/` | React 19, Vite, TypeScript, Tailwind CSS, TanStack Query, Recharts, react-i18next |
 | `e2e/` | Playwright (desktop + mobile viewports) |
+| storage | Photos in S3-compatible object storage — MinIO in the stack by default, or real AWS S3 |
 
 ## Run it
 
@@ -34,10 +35,29 @@ curl -X DELETE http://localhost:8090/api/baby
 Each instance needs its own env file with a unique `COMPOSE_PROJECT_NAME` and `APP_PORT`:
 
 ```bash
-docker compose --env-file .env.instance2 up -d --build
+docker compose --env-file .env.instance2 up -d --build --force-recreate
 ```
 
 Container, network, and volume names are derived from `COMPOSE_PROJECT_NAME`, so instances are fully isolated (including their databases and photo storage).
+
+## Photo storage
+
+Photo bytes live in S3-compatible object storage; the database holds only the object key. The
+compose stack runs **MinIO**, so it needs no AWS account and works offline, and each instance gets
+its own bucket and volume.
+
+To use **real AWS S3** instead, no code changes are needed — in `docker-compose.yml` drop the
+`minio` service (and the `depends_on` entry) and remove the `S3_ENDPOINT` line from the `app`
+service, then set in `.env`:
+
+```bash
+S3_BUCKET=your-bucket
+S3_REGION=ap-southeast-1
+S3_PATH_STYLE=false
+S3_CREATE_BUCKET=false
+S3_ACCESS_KEY=...        # or leave both keys blank to use an IAM role / AWS profile
+S3_SECRET_KEY=...
+```
 
 ## Develop natively (fast iteration)
 

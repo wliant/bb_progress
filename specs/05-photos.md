@@ -15,8 +15,8 @@ without hunting through individual entries.
   entry it belongs to, where it can be edited or removed. The gallery itself is read-only — photos
   are added from the entry they belong to.
 - **Thumbnails**: tiles must not download the full ~1 MB images. Photos are served at a reduced size
-  on request (`?size=thumb`, longest edge 320 px), generated on first use and cached on the photo
-  volume beside the original. Tiles also load lazily.
+  on request (`?size=thumb`, longest edge 320 px), generated on first use and cached as a sibling
+  object beside the original. Tiles also load lazily.
 - Empty state explains where photos come from rather than showing a blank page.
 
 ## API

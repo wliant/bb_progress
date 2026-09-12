@@ -24,6 +24,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.flywaydb:flyway-database-postgresql")
+	implementation(platform("software.amazon.awssdk:bom:2.31.7"))
+	implementation("software.amazon.awssdk:s3")
 	// Student-t and normal distributions for the INTERGROWTH-21st skew-t model.
 	implementation("org.apache.commons:commons-math3:3.6.1")
 	// JDK ImageIO cannot read WebP; needed to re-encode WebP uploads.

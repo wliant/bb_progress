@@ -65,7 +65,7 @@ npx playwright test tests/growth.spec.ts     # single spec
 
 # stack (repo root; needs .env — copy from .env.example)
 docker compose up -d --build --force-recreate     # see note below: --force-recreate is required
-docker compose --env-file .env.instance2 up -d    # second instance (unique COMPOSE_PROJECT_NAME + APP_PORT)
+docker compose --env-file .env.instance2 up -d --build --force-recreate   # second instance
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db  # Postgres only, published on :5433 for native dev
 curl -X DELETE http://localhost:8090/api/baby     # wipe profile + all records (not exposed in the UI)
 ```
@@ -98,14 +98,22 @@ check with `docker compose exec app ls -l /app/app.jar` if behaviour looks uncha
   precondition server-side.
 - Dialogs must derive their subject from the query cache (by id), not hold a snapshot in
   state, or an edit made inside the dialog won't be reflected until it is reopened.
-- **Photos**: uploads accept 25 MB (Spring `max-file-size`), nginx allows 32 MB so the app
-  answers oversized uploads itself, and nginx's own 413 returns the same coded JSON. Care-log
-  and milestone photos go through `PhotoStorageService.storeCompressed` (re-encoded to JPEG
-  ≤1 MB, EXIF orientation applied); the **profile photo alone** uses `store` and keeps the
-  original bytes. Tests that upload must use real image bytes — the compressor decodes them.
-  `?size=thumb` on any photo endpoint serves a ≤320 px copy, generated on first request and cached
-  beside the original (and deleted with it). The size is part of the ETag, or a cached full image
+- **Photos live in S3-compatible object storage**, never on the app's filesystem; the database holds
+  only the object key (`baby/<uuid>.<ext>`, `care-logs/<uuid>.jpg`, `milestones/<uuid>.jpg`). One
+  implementation (`PhotoStorageService` + AWS SDK v2) serves both deployments: a blank `S3_ENDPOINT`
+  means real AWS, a URL means MinIO, which is what compose runs. Blank credentials fall back to the
+  AWS default chain so IAM roles work. Objects are streamed through the API rather than exposed
+  directly, keeping URLs, ETags and the error contract in one place.
+- Uploads accept 25 MB (Spring `max-file-size`), nginx allows 32 MB so the app answers oversized
+  uploads itself, and nginx's own 413 returns the same coded JSON. Care-log and milestone photos go
+  through `storeCompressed` (re-encoded to JPEG ≤1 MB, EXIF orientation applied); the **profile
+  photo alone** uses `store` and keeps the original bytes. Tests that upload must use real image
+  bytes — the compressor decodes them. `?size=thumb` serves a ≤320 px sibling object, created on
+  first request and deleted with the original; the size is part of the ETag, or a cached full image
   would answer a thumbnail request.
+- Integration tests run against **real MinIO**, not a mock. It is a singleton `GenericContainer` in
+  `TestcontainersConfiguration` rather than a bean, because `PostgreSQLContainer` is also a
+  `GenericContainer` and injecting one by type is ambiguous.
 - **The photo gallery owns no data**: `/api/photos` is a read-only view over care-log, milestone and
   profile photos. Adding or removing a photo happens on its own entry, so any mutation that touches
   a photo must also invalidate the `['photos']` query.

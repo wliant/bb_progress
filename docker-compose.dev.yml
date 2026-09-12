@@ -5,3 +5,6 @@ services:
   db:
     ports:
       - "${DB_PORT:-5433}:5432"
+  minio:
+    ports:
+      - "${S3_PORT:-9000}:9000"

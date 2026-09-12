@@ -6,7 +6,6 @@
 # app
 app/build/
 app/.gradle/
-app/data/
 
 # web
 web/node_modules/
