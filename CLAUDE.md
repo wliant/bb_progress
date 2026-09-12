@@ -16,8 +16,12 @@ Baby development monitoring app for a single baby, personal use.
 
 - **Dual language**: every user-facing feature must support both Chinese and English (i18n from the start, not retrofitted).
 - **Timezone**: use SGT (Asia/Singapore, UTC+8) by default everywhere — storage, display, and defaults.
-- **Deployment**: docker compose based development. Externalize key properties (ports, credentials, instance names) into a `.env` file. Multiple instances of the compose stack must be able to run on the same machine — so no hardcoded ports, container names, volume names, or network names; derive them from `.env` (e.g. `COMPOSE_PROJECT_NAME` + port variables).
+- **Deployment**: docker compose based development. Externalize key properties (ports, credentials, instance names) into a `.env` file. Multiple instances of the compose stack must be able to run on the same machine — so no hardcoded ports, container names, volume names, or network names; derive them from `.env` (`INSTANCE` + port variables — *not* `COMPOSE_PROJECT_NAME`, see below).
 - **Testing**: full test pyramid. Unit tests and integration tests live inside `app/` and `web/` respectively; e2e tests are a separate project.
+- **Migrations, not resets**: the app is live with real data. Every schema change ships as a new
+  forward Flyway migration that preserves what is already stored — see
+  [Database migrations](#database-migrations--the-app-is-live). Never edit an applied migration and
+  never wipe a volume to make a change fit.
 - **Spec-driven development**: write a spec before implementing a feature. Specs live in `specs/`, one file per feature (e.g. `specs/<feature-name>.md`), covering the requirements, behavior, and acceptance criteria. Implementation and tests follow the spec; if the design changes during implementation, update the spec to match.
 
 ## Development workflow
@@ -97,6 +101,39 @@ that existed before the split is reused rather than stranded.
 **`docker compose up -d --build` can leave the old container running** even after it rebuilds
 the image, so verification silently tests stale code. Always add `--force-recreate`, and sanity
 check with `docker compose exec app ls -l /app/app.jar` if behaviour looks unchanged.
+
+## Database migrations — the app is live
+
+There is real data in the everyday instance (profile, records, media). Treat the database as
+production from here on.
+
+- **Never edit a migration that has been applied.** V1–V9 are applied in the live database;
+  changing one is caught by Flyway's checksum validation at startup, so the app simply refuses to
+  boot. Fix forward with a new `V<n+1>__*.sql` instead — including for mistakes in a migration
+  that already shipped.
+- **Never `flyway clean`, never `docker compose -f docker-compose.infra.yml down -v`** on the
+  everyday instance — the volumes hold the only copy. `down -v` is for the e2e stack, which is
+  what `run-isolated.sh` exists for.
+- **Additive by default.** New columns arrive nullable or with a `DEFAULT`; a `NOT NULL` column on
+  an existing table needs a default or a backfill in the same migration, or the migration fails on
+  a non-empty table. Note this only bites now that tables have rows — the same migration would
+  have passed cleanly during scaffolding.
+- **A rename is three steps, not one**: add the new column, backfill it from the old one, and drop
+  the old one in a *later* migration once no deployed code reads it. V9 is the pattern to copy — it
+  created `media`, copied the existing `photo_path` values across, and only then dropped the
+  columns.
+- **`ddl-auto: validate` is load-bearing**: an entity that disagrees with the migrated schema fails
+  startup rather than corrupting data, and every integration test boots against a freshly migrated
+  Testcontainers database, so the whole chain is exercised on each run. Keep it that way — do not
+  switch it to `update`.
+- **SQL migrations do not move stored objects.** Object keys (`baby/<uuid>.<ext>`,
+  `care-logs/<uuid>.jpg`, `milestones/<uuid>.jpg`) live in the database while the bytes live in
+  S3/MinIO, so any change to key shape or storage layout needs a matching data migration that
+  rewrites the objects too — and there is no transactional rollback across the two. Prefer leaving
+  existing keys untouched and changing only how new ones are written.
+- **Back up before migrating.** A Flyway failure mid-migration leaves the schema partly changed;
+  Postgres runs each migration in a transaction, but a backup is the only recovery from a
+  migration that succeeds and is wrong.
 
 ## Conventions worth preserving
 
