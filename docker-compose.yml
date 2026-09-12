@@ -25,6 +25,11 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_REGION: ${S3_REGION:-us-east-1}
       TZ: ${TZ:-Asia/Singapore}
+    extra_hosts:
+      # On Linux, host.docker.internal is not resolvable by default. Map it to the
+      # host gateway so SPRING_DATASOURCE_URL / S3_ENDPOINT can point at services
+      # running on the host (Docker Desktop provides this automatically).
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     healthcheck:
       # The port only opens once the Spring context (incl. Flyway) is up.
