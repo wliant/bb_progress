@@ -113,6 +113,67 @@ describe('MilestonesPage', () => {
     })
   })
 
+  // The photo control used to be hidden until the milestone was already achieved, so the
+  // only way to attach one was to save, reopen the dialog, and upload.
+  it('offers a photo on a milestone that has not been achieved yet', async () => {
+    renderApp(<MilestonesPage />)
+    await userEvent.click(await screen.findByText('2 个月'))
+    await userEvent.click(screen.getByText('你对宝宝说话或微笑时会报以微笑'))
+
+    const dialog = screen.getByRole('dialog')
+    expect(screen.getByRole('button', { name: '添加照片' })).toBeInTheDocument()
+    expect(dialog.querySelector('input[type=file]')).not.toBeNull()
+  })
+
+  it('marks achieved and uploads a photo chosen beforehand, in one save', async () => {
+    const calls: string[] = []
+    server.use(
+      http.put('/api/milestones/:id/achievement', () => {
+        calls.push('achievement')
+        return HttpResponse.json({ achievedOn: '2026-03-20', note: null, hasPhoto: false, photoVersion: null })
+      }),
+      http.put('/api/milestones/:id/achievement/photo', () => {
+        calls.push('photo')
+        return HttpResponse.json({ achievedOn: '2026-03-20', note: null, hasPhoto: true, photoVersion: 'v1' })
+      }),
+    )
+    renderApp(<MilestonesPage />)
+    await userEvent.click(await screen.findByText('2 个月'))
+    await userEvent.click(screen.getByText('你对宝宝说话或微笑时会报以微笑'))
+
+    const file = new File(['x'], 'smile.png', { type: 'image/png' })
+    await userEvent.upload(screen.getByTestId('milestone-photo-input'), file)
+
+    // Held locally, shown as a preview, and flagged as pending.
+    expect(screen.getByRole('dialog').querySelector('img')).not.toBeNull()
+    expect(screen.getByText('照片会在标记达成后一起保存')).toBeInTheDocument()
+    expect(calls).toEqual([])
+
+    await userEvent.click(screen.getByRole('button', { name: '标记达成' }))
+
+    await waitFor(() => expect(calls).toEqual(['achievement', 'photo']))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('uploads immediately when the milestone is already achieved', async () => {
+    const calls: string[] = []
+    server.use(
+      http.put('/api/milestones/:id/achievement/photo', () => {
+        calls.push('photo')
+        return HttpResponse.json({ achievedOn: '2026-03-01', note: null, hasPhoto: true, photoVersion: 'v1' })
+      }),
+    )
+    renderApp(<MilestonesPage />)
+    await userEvent.click(await screen.findByText('2 个月'))
+    await userEvent.click(screen.getByText('趴着时能抬头')) // already achieved in the fixture
+
+    const file = new File(['x'], 'p.png', { type: 'image/png' })
+    await userEvent.upload(screen.getByTestId('milestone-photo-input'), file)
+
+    await waitFor(() => expect(calls).toEqual(['photo']))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
   it('reports a failed check-off instead of failing silently', async () => {
     server.use(
       http.put('/api/milestones/:id/achievement', () => apiError(404, 'BABY_NOT_FOUND')),

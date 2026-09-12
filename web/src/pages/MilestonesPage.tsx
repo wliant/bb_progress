@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   useMilestones,
@@ -120,11 +120,31 @@ function MilestoneDialog({
 
   const [achievedOn, setAchievedOn] = useState(milestone.achievement?.achievedOn ?? todaySgt())
   const [note, setNote] = useState(milestone.achievement?.note ?? '')
+  // A photo can only be attached to an achievement that exists, so one chosen before the
+  // milestone is marked achieved is held here and uploaded as part of saving.
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (pendingPreview) URL.revokeObjectURL(pendingPreview)
+    }
+  }, [pendingPreview])
 
   function save() {
     setAchievement.mutate(
       { id: milestone.id, achievedOn, note: note || undefined },
-      { onSuccess: onClose },
+      {
+        onSuccess: () => {
+          if (!pendingFile) {
+            onClose()
+            return
+          }
+          // The achievement now exists, so the held photo can go up. On failure the dialog
+          // stays open — it will have re-rendered with the normal upload control by then.
+          uploadPhoto.mutate({ id: milestone.id, file: pendingFile }, { onSuccess: onClose })
+        },
+      },
     )
   }
 
@@ -134,9 +154,21 @@ function MilestoneDialog({
 
   function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) uploadPhoto.mutate({ id: milestone.id, file })
     e.target.value = ''
+    if (!file) return
+    if (milestone.achievement) {
+      uploadPhoto.mutate({ id: milestone.id, file })
+      return
+    }
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview)
+    setPendingFile(file)
+    setPendingPreview(URL.createObjectURL(file))
   }
+
+  const shownPhoto = milestone.achievement?.hasPhoto
+    ? `/api/milestones/${milestone.id}/achievement/photo?v=${milestone.achievement.photoVersion}`
+    : pendingPreview
+  const busy = setAchievement.isPending || uploadPhoto.isPending
 
   return (
     <div
@@ -174,38 +206,40 @@ function MilestoneDialog({
           />
         </label>
 
-        {milestone.achievement && (
-          <div className="mb-3">
-            {milestone.achievement.hasPhoto && (
-              <img
-                src={`/api/milestones/${milestone.id}/achievement/photo?v=${milestone.achievement.photoVersion}`}
-                alt=""
-                className="mb-2 h-32 w-full rounded-lg object-cover"
-              />
-            )}
-            <input
-              ref={fileInput}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={onPhotoChange}
-            />
-            <button
-              type="button"
-              onClick={() => fileInput.current?.click()}
-              disabled={uploadPhoto.isPending}
-              className="text-sm font-medium text-rose-600 hover:underline disabled:opacity-50"
-            >
-              {uploadPhoto.isPending ? t('common.loading') : t('milestones.uploadPhoto')}
-            </button>
-          </div>
-        )}
+        <div className="mb-3">
+          {shownPhoto && (
+            <img src={shownPhoto} alt="" className="mb-2 h-32 w-full rounded-lg object-cover" />
+          )}
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={onPhotoChange}
+            data-testid="milestone-photo-input"
+          />
+          <button
+            type="button"
+            onClick={() => fileInput.current?.click()}
+            disabled={uploadPhoto.isPending}
+            className="text-sm font-medium text-rose-600 hover:underline disabled:opacity-50"
+          >
+            {uploadPhoto.isPending
+              ? t('care.uploading')
+              : shownPhoto
+                ? t('milestones.replacePhoto')
+                : t('milestones.addPhoto')}
+          </button>
+          {pendingFile && !milestone.achievement && (
+            <p className="mt-1 text-xs text-slate-400">{t('milestones.photoPending')}</p>
+          )}
+        </div>
 
         <div className="flex gap-3">
           <button
             type="button"
             onClick={save}
-            disabled={setAchievement.isPending}
+            disabled={busy}
             className="flex-1 rounded-xl bg-rose-500 py-2.5 font-semibold text-white shadow hover:bg-rose-600 disabled:opacity-50"
           >
             {milestone.achievement ? t('common.save') : t('milestones.markAchieved')}

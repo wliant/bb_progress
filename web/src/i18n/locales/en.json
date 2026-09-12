@@ -115,7 +115,10 @@
       "MOTOR": "Movement/Physical"
     },
     "photo": "Photo",
-    "uploadPhoto": "Upload photo"
+    "uploadPhoto": "Upload photo",
+    "addPhoto": "Add photo",
+    "replacePhoto": "Replace photo",
+    "photoPending": "The photo is saved when you mark this achieved"
   },
   "care": {
     "title": "Daily Care",

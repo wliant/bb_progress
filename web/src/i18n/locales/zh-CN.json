@@ -115,7 +115,10 @@
       "MOTOR": "动作/身体发育"
     },
     "photo": "照片",
-    "uploadPhoto": "上传照片"
+    "uploadPhoto": "上传照片",
+    "addPhoto": "添加照片",
+    "replacePhoto": "更换照片",
+    "photoPending": "照片会在标记达成后一起保存"
   },
   "care": {
     "title": "日常护理",

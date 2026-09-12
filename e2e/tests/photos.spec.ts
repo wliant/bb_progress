@@ -7,6 +7,7 @@ test.beforeEach(async ({ request }) => {
   const logs = await (await request.get('/api/care-logs')).json()
   for (const log of logs) await request.delete(`/api/care-logs/${log.id}`)
   await request.delete('/api/milestones/2m-social-smiles/achievement')
+  await request.delete('/api/milestones/2m-motor-head-up/achievement')
 })
 
 test('a photo added to a care entry shows up in the gallery', async ({ page }) => {
@@ -87,6 +88,41 @@ test('a milestone photo appears with its title and follows the language switcher
 
   await page.getByRole('button', { name: 'English' }).filter({ visible: true }).first().click()
   await expect(page.getByText('Smiles when you talk to or smile at them').first()).toBeVisible()
+})
+
+/** Attaching a photo to a milestone must not require saving, reopening, then uploading. */
+test('a milestone photo can be added in the same dialog as marking it achieved', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/milestones')
+  await page.getByRole('button', { name: /^2 个月/ }).click()
+  await page.locator('li', { hasText: '趴着时能抬头' }).click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('button', { name: '添加照片' })).toBeVisible()
+  await dialog.getByLabel('达成日期').fill('2026-04-02')
+  await dialog.getByTestId('milestone-photo-input').setInputFiles({
+    name: 'tummy.png',
+    mimeType: 'image/png',
+    buffer: noisyPng(700, 520),
+  })
+  // Held as a local preview until the achievement exists.
+  await expect(dialog.locator('img')).toBeVisible()
+  await expect(dialog.getByText('照片会在标记达成后一起保存')).toBeVisible()
+
+  await dialog.getByRole('button', { name: '标记达成' }).click()
+  await expect(dialog).toBeHidden()
+
+  const milestones = await (await request.get('/api/milestones')).json()
+  const achieved = milestones
+    .flatMap((g: { milestones: unknown[] }) => g.milestones)
+    .find((m: { id: string }) => m.id === '2m-motor-head-up')
+  expect(achieved.achievement).toMatchObject({ achievedOn: '2026-04-02', hasPhoto: true })
+
+  await page.goto('/photos')
+  await expect(page.getByText('2026-04-02')).toBeVisible()
+  await expect(page.getByText('趴着时能抬头').first()).toBeVisible()
 })
 
 test('removing a photo removes it from the gallery', async ({ page }) => {
