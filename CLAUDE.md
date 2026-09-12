@@ -114,7 +114,9 @@ check with `docker compose exec app ls -l /app/app.jar` if behaviour looks uncha
 - **Photos live in S3-compatible object storage**, never on the app's filesystem; the database holds
   only the object key (`baby/<uuid>.<ext>`, `care-logs/<uuid>.jpg`, `milestones/<uuid>.jpg`). One
   implementation (`PhotoStorageService` + AWS SDK v2) serves both deployments: a blank `S3_ENDPOINT`
-  means real AWS, a URL means MinIO, which is what compose runs. Blank credentials fall back to the
+  means real AWS, a URL means MinIO, which is what compose runs. `SPRING_DATASOURCE_URL` and
+  `S3_ENDPOINT` both come from `.env` rather than being written into `docker-compose.yml`, so
+  repointing at an external database or a real bucket touches no compose file. Blank credentials fall back to the
   AWS default chain so IAM roles work. Objects are streamed through the API rather than exposed
   directly, keeping URLs, ETags and the error contract in one place.
 - **Attachments are a `media` table**, many per care-log entry or milestone achievement, with

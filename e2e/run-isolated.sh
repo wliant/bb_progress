@@ -16,6 +16,9 @@ export DB_NAME=bb
 export DB_USER=bb
 export DB_PASSWORD=e2e-throwaway
 export TZ=Asia/Singapore
+# The app service requires these explicitly; .env is not read here.
+export SPRING_DATASOURCE_URL="jdbc:postgresql://db:5432/${DB_NAME}"
+export S3_ENDPOINT=http://minio:9000
 # The stack's own MinIO; keys are throwaway and the volume is destroyed with the stack.
 export S3_BUCKET=bb-progress
 export S3_ACCESS_KEY=e2eaccess

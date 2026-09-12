@@ -71,18 +71,21 @@ that instead of offering a button that cannot work. Picking an existing audio fi
 compose stack runs **MinIO**, so it needs no AWS account and works offline, and each instance gets
 its own bucket and volume.
 
-To use **real AWS S3** instead, no code changes are needed — drop the `minio` service from
-`docker-compose.infra.yml` and remove the `S3_ENDPOINT` line from the `app` service in
-`docker-compose.yml`, then set in `.env`:
+To use **real AWS S3** instead, it is a `.env` change — blanking `S3_ENDPOINT` selects AWS:
 
 ```bash
+S3_ENDPOINT=              # blank = real AWS
 S3_BUCKET=your-bucket
 S3_REGION=ap-southeast-1
 S3_PATH_STYLE=false
 S3_CREATE_BUCKET=false
-S3_ACCESS_KEY=...        # or leave both keys blank to use an IAM role / AWS profile
+S3_ACCESS_KEY=...         # or leave both keys blank to use an IAM role / AWS profile
 S3_SECRET_KEY=...
 ```
+
+Then drop the now-unused `minio` service from `docker-compose.infra.yml`. The same applies to the
+database: `SPRING_DATASOURCE_URL` in `.env` points the app wherever you like, so an external
+Postgres needs no change to any compose file.
 
 ## Develop natively (fast iteration)
 
