@@ -10,5 +10,5 @@ export async function ensureBaby(request: APIRequestContext) {
 
 /** Switches the UI language via the header/sidebar toggle. */
 export async function switchLanguage(page: Page, lang: '中文' | 'English') {
-  await page.getByRole('button', { name: lang }).first().click()
+  await page.getByRole('button', { name: lang }).filter({ visible: true }).first().click()
 }
