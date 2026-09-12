@@ -1,0 +1,93 @@
+{
+  "app": { "title": "Baby Progress" },
+  "nav": {
+    "home": "Home",
+    "profile": "Profile",
+    "growth": "Growth",
+    "milestones": "Milestones",
+    "care": "Care"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "confirm": "Confirm",
+    "loading": "Loading…",
+    "date": "Date",
+    "note": "Note",
+    "optional": " (optional)",
+    "error": "Something went wrong, please try again",
+    "requiredField": "This field is required"
+  },
+  "profile": {
+    "title": "Baby Profile",
+    "name": "Name",
+    "dateOfBirth": "Date of birth",
+    "gender": "Gender",
+    "male": "Boy",
+    "female": "Girl",
+    "photo": "Photo",
+    "uploadPhoto": "Upload photo",
+    "saved": "Saved",
+    "notCreated": "No baby profile yet — create one to get started!",
+    "create": "Create profile",
+    "ageLabel": "{{months}} months {{days}} days",
+    "photoTypeError": "Only JPEG, PNG or WebP photos are supported"
+  },
+  "growth": {
+    "title": "Growth",
+    "weight": "Weight",
+    "height": "Height",
+    "headCircumference": "Head circumference",
+    "weightUnit": "kg",
+    "heightUnit": "cm",
+    "headUnit": "cm",
+    "addRecord": "Add record",
+    "editRecord": "Edit record",
+    "measuredOn": "Measured on",
+    "records": "Records",
+    "noRecords": "No growth records yet",
+    "ageMonths": "Age (months)",
+    "percentileNote": "Reference curves: WHO Child Growth Standards P3 / P15 / P50 / P85 / P97",
+    "atLeastOne": "Fill in at least one measurement",
+    "duplicateDate": "A record for this date already exists",
+    "baby": "Baby"
+  },
+  "milestones": {
+    "title": "Milestones",
+    "ageGroup": "{{months}} months",
+    "achieved": "Achieved",
+    "achievedOn": "Achieved on",
+    "markAchieved": "Mark achieved",
+    "unmark": "Unmark",
+    "progress": "{{done}}/{{total}}",
+    "category": {
+      "SOCIAL": "Social/Emotional",
+      "LANGUAGE": "Language/Communication",
+      "COGNITIVE": "Cognitive",
+      "MOTOR": "Movement/Physical"
+    },
+    "photo": "Photo",
+    "uploadPhoto": "Upload photo"
+  },
+  "care": {
+    "title": "Daily Care",
+    "FEEDING": "Feeding",
+    "SLEEP": "Sleep",
+    "DIAPER": "Diaper",
+    "quickLog": "Quick log",
+    "logged": "Logged {{type}}",
+    "todayCounts": "Today",
+    "noLogs": "No entries for this day",
+    "time": "Time",
+    "addNote": "Add note"
+  },
+  "home": {
+    "welcome": "Welcome back",
+    "age": "Age",
+    "quickActions": "Quick log"
+  },
+  "language": { "label": "Language", "zh": "中文", "en": "English" }
+}

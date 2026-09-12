@@ -29,9 +29,36 @@ After completing each feature:
 2. Start the docker compose stack in local mode.
 3. Verify the feature in the browser using the Playwright MCP.
 
+## Tech stack
+
+- `app/`: Java 21, Spring Boot 4 (note: Jackson 3 — `tools.jackson.*` imports, not `com.fasterxml.*`), PostgreSQL, Flyway, Gradle Kotlin DSL. Gradle auto-provisions JDK 21 via the foojay toolchain resolver.
+- `web/`: React 19 + Vite + TypeScript, Tailwind CSS v4, TanStack Query, react-i18next (default `zh-CN`), Recharts, Vitest + Testing Library + MSW.
+- `e2e/`: Playwright, desktop + mobile (Pixel 7) projects, runs against the compose stack.
+- WHO growth-standard LMS data lives in `app/src/main/resources/who/` (generated from official WHO tables — do not hand-edit); CDC milestone seed data in the Flyway migration `V4__seed_milestone_definitions.sql`.
+
 ## Commands
 
-_(To be filled in as the projects are scaffolded — build, lint, test, and single-test commands for `app/`, `web/`, and `e2e/`.)_
+```bash
+# app/ (run from app/)
+./gradlew test                    # unit tests (no Docker needed)
+./gradlew integrationTest         # integration tests (Testcontainers, needs Docker)
+./gradlew test --tests 'com.bb.progress.growth.WhoPercentileServiceTest'   # single test
+./gradlew bootRun                 # run on :8080 (needs Postgres, see below)
 
-- Start the stack: `docker compose up -d` (with `.env` configured)
-- Run a second instance: use a different `.env` (distinct `COMPOSE_PROJECT_NAME` and ports), e.g. `docker compose --env-file .env.instance2 up -d`
+# web/ (run from web/)
+npm run dev                       # dev server :5173, /api proxied to :8080
+npm test                          # vitest run
+npx vitest run src/pages/HomePage.test.tsx   # single file
+npm run typecheck && npm run lint
+npm run build
+
+# e2e/ (run from e2e/; stack must be up)
+npm test                          # all specs
+npx playwright test tests/growth.spec.ts     # single spec
+E2E_BASE_URL=http://localhost:8090 npm test  # custom port
+
+# stack (repo root; needs .env — copy from .env.example)
+docker compose up -d --build
+docker compose --env-file .env.instance2 up -d   # second instance (unique COMPOSE_PROJECT_NAME + APP_PORT)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db  # Postgres only, published on :5433 for native dev
+```

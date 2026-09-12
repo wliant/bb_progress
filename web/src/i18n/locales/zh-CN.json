@@ -1,0 +1,93 @@
+{
+  "app": { "title": "宝宝成长记录" },
+  "nav": {
+    "home": "首页",
+    "profile": "宝宝档案",
+    "growth": "生长曲线",
+    "milestones": "里程碑",
+    "care": "日常护理"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "add": "添加",
+    "confirm": "确认",
+    "loading": "加载中…",
+    "date": "日期",
+    "note": "备注",
+    "optional": "（可选）",
+    "error": "出错了，请重试",
+    "requiredField": "此项必填"
+  },
+  "profile": {
+    "title": "宝宝档案",
+    "name": "姓名",
+    "dateOfBirth": "出生日期",
+    "gender": "性别",
+    "male": "男",
+    "female": "女",
+    "photo": "照片",
+    "uploadPhoto": "上传照片",
+    "saved": "已保存",
+    "notCreated": "还没有宝宝档案，先创建一个吧！",
+    "create": "创建档案",
+    "ageLabel": "{{months}} 个月 {{days}} 天",
+    "photoTypeError": "只支持 JPEG、PNG 或 WebP 格式的照片"
+  },
+  "growth": {
+    "title": "生长曲线",
+    "weight": "体重",
+    "height": "身高",
+    "headCircumference": "头围",
+    "weightUnit": "公斤",
+    "heightUnit": "厘米",
+    "headUnit": "厘米",
+    "addRecord": "添加记录",
+    "editRecord": "编辑记录",
+    "measuredOn": "测量日期",
+    "records": "记录列表",
+    "noRecords": "还没有生长记录",
+    "ageMonths": "月龄（月）",
+    "percentileNote": "参考曲线：WHO 儿童生长标准 P3 / P15 / P50 / P85 / P97",
+    "atLeastOne": "至少填写一项测量值",
+    "duplicateDate": "这一天已经有记录了",
+    "baby": "宝宝"
+  },
+  "milestones": {
+    "title": "里程碑",
+    "ageGroup": "{{months}} 个月",
+    "achieved": "已达成",
+    "achievedOn": "达成日期",
+    "markAchieved": "标记达成",
+    "unmark": "取消标记",
+    "progress": "{{done}}/{{total}}",
+    "category": {
+      "SOCIAL": "社交/情感",
+      "LANGUAGE": "语言/沟通",
+      "COGNITIVE": "认知",
+      "MOTOR": "动作/身体发育"
+    },
+    "photo": "照片",
+    "uploadPhoto": "上传照片"
+  },
+  "care": {
+    "title": "日常护理",
+    "FEEDING": "喂奶",
+    "SLEEP": "睡觉",
+    "DIAPER": "换尿布",
+    "quickLog": "快速记录",
+    "logged": "已记录 {{type}}",
+    "todayCounts": "今日记录",
+    "noLogs": "这一天还没有记录",
+    "time": "时间",
+    "addNote": "添加备注"
+  },
+  "home": {
+    "welcome": "欢迎回来",
+    "age": "月龄",
+    "quickActions": "快速记录"
+  },
+  "language": { "label": "语言", "zh": "中文", "en": "English" }
+}

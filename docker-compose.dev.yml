@@ -1,0 +1,7 @@
+# Dev override: publishes Postgres so `./gradlew bootRun` and `npm run dev`
+# can run natively against it.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
+services:
+  db:
+    ports:
+      - "${DB_PORT:-5433}:5432"

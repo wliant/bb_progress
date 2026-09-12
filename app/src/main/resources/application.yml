@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: bb-progress-app
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/bb}
+    username: ${SPRING_DATASOURCE_USERNAME:bb}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  jackson:
+    time-zone: Asia/Singapore
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
+
+app:
+  photo-dir: ${APP_PHOTO_DIR:./data/photos}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

@@ -1,0 +1,19 @@
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# app
+app/build/
+app/.gradle/
+app/data/
+
+# web
+web/node_modules/
+web/dist/
+web/coverage/
+
+# e2e
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
