@@ -1,6 +1,7 @@
 package com.bb.progress.baby;
 
 import com.bb.progress.baby.BabyDtos.BabyRequest;
+import com.bb.progress.carelog.CareLog;
 import com.bb.progress.carelog.CareLogRepository;
 import com.bb.progress.common.ApiException;
 import com.bb.progress.growth.GrowthRecord;
@@ -131,13 +132,21 @@ public class BabyService {
         return path;
     }
 
-    /** Full reset: clears the profile and everything recorded against it, photos included. */
+    /**
+     * Full reset: clears the profile and everything recorded against it, photos included.
+     * The rows are deleted in bulk rather than through their services, so every photo has to be
+     * removed explicitly here — missing one leaks the file onto the volume with nothing pointing
+     * at it.
+     */
     @Transactional
     public void resetAll() {
         repository.findFirstByOrderByCreatedAtAsc()
                 .ifPresent(baby -> photoStorage.deleteIfExists(baby.getPhotoPath()));
         achievements.findAll().stream()
                 .map(MilestoneAchievement::getPhotoPath)
+                .forEach(photoStorage::deleteIfExists);
+        careLogs.findAll().stream()
+                .map(CareLog::getPhotoPath)
                 .forEach(photoStorage::deleteIfExists);
         careLogs.deleteAll();
         growthRecords.deleteAll();

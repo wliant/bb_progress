@@ -771,6 +771,50 @@ class ApiIntegrationTest {
         assertThat(countStoredPhotos("care-logs")).isZero();
     }
 
+    /** A reset deletes rows in bulk, so every photo must be removed explicitly alongside them. */
+    @Test
+    @Order(25)
+    void resetLeavesNoOrphanedPhotoFiles() throws Exception {
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"小宝\",\"dateOfBirth\":\"2026-01-15\",\"gender\":\"FEMALE\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/baby/photo")
+                        .file(new MockMultipartFile("file", "me.jpg", "image/jpeg", tinyJpeg()))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isOk());
+
+        MvcResult log = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String logId = com.jayway.jsonpath.JsonPath.read(log.getResponse().getContentAsString(), "$.id");
+        mockMvc.perform(multipart("/api/care-logs/" + logId + "/photo")
+                        .file(new MockMultipartFile("file", "a.jpg", "image/jpeg", tinyJpeg()))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isOk());
+        // Viewing the gallery materialises a cached thumbnail, which must also go.
+        mockMvc.perform(get("/api/care-logs/" + logId + "/photo?size=thumb")).andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/milestones/2m-social-smiles/achievement")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"achievedOn\":\"2026-03-20\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/milestones/2m-social-smiles/achievement/photo")
+                        .file(new MockMultipartFile("file", "b.jpg", "image/jpeg", tinyJpeg()))
+                        .with(req -> { req.setMethod("PUT"); return req; }))
+                .andExpect(status().isOk());
+
+        assertThat(countStoredPhotos("care-logs")).isPositive();
+
+        mockMvc.perform(delete("/api/baby")).andExpect(status().isNoContent());
+
+        assertThat(countStoredPhotos("baby")).isZero();
+        assertThat(countStoredPhotos("care-logs")).isZero();
+        assertThat(countStoredPhotos("milestones")).isZero();
+    }
+
     private static byte[] largeNoisyPng(int width, int height) throws Exception {
         java.awt.image.BufferedImage image =
                 new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);
