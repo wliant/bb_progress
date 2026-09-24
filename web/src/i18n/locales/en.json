@@ -123,6 +123,7 @@
     "SLEEP": "Sleep",
     "DIAPER": "Diaper",
     "quickLog": "Quick log",
+    "quickLogOn": "Quick log · {{date}}",
     "logged": "Logged {{type}}",
     "todayCounts": "Today",
     "noLogs": "No entries for this day",

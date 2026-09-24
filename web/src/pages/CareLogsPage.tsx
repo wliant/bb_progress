@@ -8,7 +8,7 @@ import { RequireBaby } from '../components/RequireBaby'
 import { CareLogList } from '../features/care/CareLogList'
 import { CareLogEditDialog } from '../features/care/CareLogEditDialog'
 import type { CareType } from '../api/types'
-import { todaySgt } from '../lib/dates'
+import { timeSgt, todaySgt } from '../lib/dates'
 
 export function CareLogsPage() {
   return <RequireBaby>{() => <CareLogsContent />}</RequireBaby>
@@ -21,6 +21,9 @@ function CareLogsContent() {
   const [date, setDate] = useState(searchParams.get('date') ?? todaySgt())
   const { data: logs = [], isLoading, isError, error, refetch } = useCareLogs(date)
   const [editingId, setEditingId] = useState<string | null>(null)
+  // Time of day for backfilling a past date; today logs "now" and ignores it.
+  const [time, setTime] = useState(() => timeSgt(new Date().toISOString()))
+  const isToday = date === todaySgt()
 
   // Derived, not held in state: an upload inside the dialog must be reflected there.
   const editing = logs.find((log) => log.id === editingId) ?? null
@@ -42,19 +45,33 @@ function CareLogsContent() {
         />
       </div>
 
-      {date === todaySgt() && (
-        <section className="rounded-2xl bg-white p-5 shadow-sm">
-          <h3 className="mb-3 text-sm font-semibold text-slate-700">{t('care.quickLog')}</h3>
-          <QuickCareButtons />
-        </section>
-      )}
+      <section className="rounded-2xl bg-white p-5 shadow-sm">
+        <h3 className="mb-3 text-sm font-semibold text-slate-700">
+          {isToday ? t('care.quickLog') : t('care.quickLogOn', { date })}
+        </h3>
+        {!isToday && (
+          <label className="mb-3 flex items-center gap-2 text-sm text-slate-600">
+            {t('care.time')}
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+            />
+          </label>
+        )}
+        <QuickCareButtons
+          loggedAt={isToday ? undefined : `${date}T${time}:00+08:00`}
+          disabled={!isToday && time === ''}
+        />
+      </section>
 
       {isError ? (
         <ErrorState error={error} onRetry={() => void refetch()} />
       ) : (
         <section className="rounded-2xl bg-white p-5 shadow-sm">
           <p className="mb-3 text-sm text-slate-500">
-            {t('care.todayCounts')}: 🍼 {counts.FEEDING} · 😴 {counts.SLEEP} · 🧷 {counts.DIAPER}
+            {isToday ? t('care.todayCounts') : date}: 🍼 {counts.FEEDING} · 😴 {counts.SLEEP} · 🧷 {counts.DIAPER}
           </p>
           {isLoading ? (
             <p className="text-sm text-slate-500">{t('common.loading')}</p>

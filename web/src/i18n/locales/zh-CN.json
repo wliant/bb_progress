@@ -123,6 +123,7 @@
     "SLEEP": "睡觉",
     "DIAPER": "换尿布",
     "quickLog": "快速记录",
+    "quickLogOn": "快速记录 · {{date}}",
     "logged": "已记录 {{type}}",
     "todayCounts": "今日记录",
     "noLogs": "这一天还没有记录",
