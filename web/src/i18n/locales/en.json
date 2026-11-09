@@ -192,10 +192,36 @@
       "hours": "{{hours}}h",
       "showTable": "Show the numbers",
       "hideTable": "Hide the numbers",
-      "noneInRange": "Nothing recorded in this range"
+      "noneInRange": "Nothing recorded in this range",
+      "reference": {
+        "toggle": "Show reference ranges",
+        "legend": "Typical range",
+        "legendMin": "Suggested minimum",
+        "within": "within the typical range",
+        "below": "below the typical range",
+        "above": "above the typical range",
+        "notComparableIntake": "not comparable — {{count}} feed(s) with no amount recorded",
+        "notComparableSleep": "not comparable — a sleep is still open",
+        "notComparableSleepNone": "not comparable — no sleep logged with an end time",
+        "notComparableWet": "not comparable — {{count}} change(s) with no wet/dry recorded",
+        "notComparableToday": "not comparable — the day is still in progress",
+        "noneComparable": "Nothing in this range can be compared yet — see the note below.",
+        "weightEstimated": "weight carried forward from {{date}}",
+        "noWeight": "No usable weight — add a growth record to see the intake range",
+        "disclaimer": "General published ranges for healthy term infants, not advice for your baby. Your paediatrician's figures override these.",
+        "intakeNote": "The range applies to milk taken by bottle or expressed. A baby feeding directly at the breast regulates her own intake.",
+        "sleepNote": "Counts only sleeps logged with an end time, so it will read low until every nap is recorded.",
+        "wetNote": "Assumes every change is logged, which the app cannot verify.",
+        "wetTitle": "Wet nappies per day"
+      }
     },
     "hoursShort": "{{h}}h",
-    "minutesShort": "{{m}}m"
+    "minutesShort": "{{m}}m",
+    "wet": {
+      "label": "Wet?",
+      "WET": "Wet",
+      "DRY": "Dry"
+    }
   },
   "home": {
     "welcome": "Welcome back",

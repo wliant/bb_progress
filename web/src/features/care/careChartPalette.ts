@@ -14,6 +14,7 @@ export const SERIES = {
   feeds: '#0891b2',
   breastMinutes: '#7c3aed',
   sleep: '#0d9488',
+  wet: '#2563eb',
 } as const
 
 /**
@@ -28,6 +29,16 @@ export const CONDITION_COLORS = {
   diaperVeryDirty: '#3b0764',
   /** Deliberately the one gray: an unrecorded condition is an absence, not a degree. */
   diaperUnknown: '#94a3b8',
+} as const
+
+/**
+ * The reference band is context, not data. It is a recessive neutral so it never competes
+ * with the bars in front of it -- a second saturated hue here would read as a series.
+ */
+export const REFERENCE = {
+  band: '#64748b',
+  bandOpacity: 0.1,
+  line: '#64748b',
 } as const
 
 export const AXIS = '#94a3b8'

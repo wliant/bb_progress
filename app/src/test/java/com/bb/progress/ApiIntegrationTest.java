@@ -1122,4 +1122,168 @@ class ApiIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("CARE_AGGREGATE_RANGE_INVALID"));
     }
+    @Test
+    @Order(34)
+    void diaperRecordsWetnessSeparatelyFromDirtiness() throws Exception {
+        ensureProfile();
+        // A change can be wet and clean, or dirty and dry — the two are independent facts,
+        // and only wetness feeds the hydration reference.
+        MvcResult created = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"DIAPER\",\"condition\":\"CLEAN\",\"wet\":true}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.condition").value("CLEAN"))
+                .andExpect(jsonPath("$.wet").value(true))
+                .andReturn();
+        String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(put("/api/care-logs/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loggedAt\":\"2026-07-10T09:00:00+08:00\",\"condition\":\"DIRTY\",\"wet\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.wet").value(false));
+
+        // Wetness belongs to a diaper entry and nothing else.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"wet\":true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CARE_DETAIL_TYPE_MISMATCH"));
+    }
+
+    @Test
+    @Order(35)
+    void referenceBandComesFromInterpolatedWeightAndAge() throws Exception {
+        ensureProfile();
+        jdbcTemplate.update("DELETE FROM care_log");
+        jdbcTemplate.update("DELETE FROM growth_record WHERE is_birth = false");
+
+        // Two weights a fortnight apart; the band on a day between them interpolates.
+        mockMvc.perform(post("/api/growth-records")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"measuredOn\":\"2026-03-01\",\"weightKg\":4.0}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/growth-records")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"measuredOn\":\"2026-03-15\",\"weightKg\":5.0}"))
+                .andExpect(status().isCreated());
+
+        // At 4.5 kg and under 3 months old: 120-180 ml/kg/day -> 540-810 ml.
+        mockMvc.perform(get("/api/care-aggregates?from=2026-03-08&to=2026-03-08"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.days[0].reference.weightKg").value(4.5))
+                .andExpect(jsonPath("$.days[0].reference.weightEstimated").value(true))
+                .andExpect(jsonPath("$.days[0].reference.intakeMl.low").value(540))
+                .andExpect(jsonPath("$.days[0].reference.intakeMl.high").value(810))
+                // The sleep band needs only an age, and the wet floor is a constant.
+                .andExpect(jsonPath("$.days[0].reference.sleepMinutes.low").value(840))
+                .andExpect(jsonPath("$.days[0].reference.sleepMinutes.high").value(1020))
+                .andExpect(jsonPath("$.days[0].reference.wetNappiesMin").value(6));
+
+        // On a measurement day the weight is the measurement, not an estimate.
+        mockMvc.perform(get("/api/care-aggregates?from=2026-03-15&to=2026-03-15"))
+                .andExpect(jsonPath("$.days[0].reference.weightKg").value(5.0))
+                .andExpect(jsonPath("$.days[0].reference.weightEstimated").value(false));
+
+        // Weight is held flat after the last measurement, never extrapolated, and goes
+        // unusable once stale — an intake band drifting upward unweighed would be a lie.
+        mockMvc.perform(get("/api/care-aggregates?from=2026-04-10&to=2026-04-10"))
+                .andExpect(jsonPath("$.days[0].reference.weightKg").value(5.0))
+                .andExpect(jsonPath("$.days[0].reference.weightEstimated").value(true));
+        mockMvc.perform(get("/api/care-aggregates?from=2026-04-20&to=2026-04-20"))
+                .andExpect(jsonPath("$.days[0].reference.intakeMl").doesNotExist())
+                .andExpect(jsonPath("$.days[0].reference.weightKg").doesNotExist());
+    }
+
+    @Test
+    @Order(36)
+    void onlyDaysWhoseDataSupportsItAreComparable() throws Exception {
+        ensureProfile();
+        jdbcTemplate.update("DELETE FROM care_log");
+
+        // A fully measured past day.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"loggedAt\":\"2026-03-10T09:00:00+08:00\","
+                                + "\"method\":\"BOTTLE\",\"amountMl\":100}"))
+                .andExpect(status().isCreated());
+        // A past day with one unmeasured breastfeed.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"loggedAt\":\"2026-03-11T09:00:00+08:00\","
+                                + "\"method\":\"BOTTLE\",\"amountMl\":100}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"loggedAt\":\"2026-03-11T13:00:00+08:00\","
+                                + "\"method\":\"BREAST\",\"durationMin\":18}"))
+                .andExpect(status().isCreated());
+        // One wet-flagged change and one without, on the same day.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"DIAPER\",\"loggedAt\":\"2026-03-11T10:00:00+08:00\",\"wet\":true}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"DIAPER\",\"loggedAt\":\"2026-03-11T14:00:00+08:00\"}"))
+                .andExpect(status().isCreated());
+        // A closed sleep and, on the next day, an open one.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SLEEP\",\"loggedAt\":\"2026-03-10T20:00:00+08:00\","
+                                + "\"startedAt\":\"2026-03-10T20:00:00+08:00\","
+                                + "\"endedAt\":\"2026-03-10T23:00:00+08:00\"}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SLEEP\",\"loggedAt\":\"2026-03-11T20:00:00+08:00\"}"))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/care-aggregates?from=2026-03-10&to=2026-03-11"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.days[0].comparable.intake").value(true))
+                .andExpect(jsonPath("$.days[0].comparable.sleep").value(true))
+                // An unmeasured feed costs the day its intake verdict.
+                .andExpect(jsonPath("$.days[1].comparable.intake").value(false))
+                // An open nap is an unknown number of minutes.
+                .andExpect(jsonPath("$.days[1].comparable.sleep").value(false))
+                // One change with no wet flag makes the day's wet count incomplete.
+                .andExpect(jsonPath("$.days[1].comparable.wet").value(false))
+                .andExpect(jsonPath("$.days[1].wetCount").value(1))
+                .andExpect(jsonPath("$.days[1].wetUnknown").value(1));
+    }
+
+    @Test
+    @Order(37)
+    void todayIsNeverComparableBecauseTheDayIsNotOver() throws Exception {
+        ensureProfile();
+        jdbcTemplate.update("DELETE FROM care_log");
+
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"method\":\"BOTTLE\",\"amountMl\":80}"))
+                .andExpect(status().isCreated());
+
+        String today = java.time.LocalDate.now(com.bb.progress.common.Sgt.ZONE).toString();
+        mockMvc.perform(get("/api/care-aggregates?from=" + today + "&to=" + today))
+                .andExpect(status().isOk())
+                // Fully measured, and still not comparable: more feeds are coming.
+                .andExpect(jsonPath("$.days[0].feedsWithAmount").value(1))
+                .andExpect(jsonPath("$.days[0].feedsTotal").value(1))
+                .andExpect(jsonPath("$.days[0].comparable.intake").value(false));
+    }
+
+    @Test
+    @Order(38)
+    void withoutGrowthRecordsThereIsNoIntakeBand() throws Exception {
+        ensureProfile();
+        jdbcTemplate.update("DELETE FROM care_log");
+        jdbcTemplate.update("DELETE FROM growth_record");
+
+        mockMvc.perform(get("/api/care-aggregates?from=2026-03-10&to=2026-03-10"))
+                .andExpect(status().isOk())
+                // No weight to band by, but the age-based sleep reference still stands.
+                .andExpect(jsonPath("$.days[0].reference.intakeMl").doesNotExist())
+                .andExpect(jsonPath("$.days[0].reference.sleepMinutes.low").value(840));
+    }
 }

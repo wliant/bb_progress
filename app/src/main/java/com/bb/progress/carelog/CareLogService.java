@@ -123,14 +123,15 @@ public class CareLogService {
         switch (log.getType()) {
             case FEEDING -> {
                 rejectForeign(detail.startedAt() != null || detail.endedAt() != null
-                        || detail.condition() != null, CareType.FEEDING);
+                        || detail.condition() != null || detail.wet() != null, CareType.FEEDING);
                 log.setFeedMethod(detail.method());
                 log.setAmountMl(detail.amountMl());
                 log.setDurationMin(detail.durationMin());
             }
             case SLEEP -> {
                 rejectForeign(detail.method() != null || detail.amountMl() != null
-                        || detail.durationMin() != null || detail.condition() != null, CareType.SLEEP);
+                        || detail.durationMin() != null || detail.condition() != null
+                        || detail.wet() != null, CareType.SLEEP);
                 // The window drives the entry's place in the day, so the two stay in step.
                 Instant startedAt = detail.startedAt() != null
                         ? detail.startedAt().toInstant()
@@ -150,6 +151,7 @@ public class CareLogService {
                         || detail.durationMin() != null || detail.startedAt() != null
                         || detail.endedAt() != null, CareType.DIAPER);
                 log.setCondition(detail.condition());
+                log.setWet(detail.wet());
             }
         }
     }

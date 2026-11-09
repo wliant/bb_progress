@@ -8,6 +8,26 @@ public final class CareAggregateDtos {
     private CareAggregateDtos() {
     }
 
+    /** The published ranges for this day, or null where none can be produced. */
+    public record DayReference(
+            Double weightKg,
+            /** True when the weight is a stand-in rather than interpolated between measurements. */
+            boolean weightEstimated,
+            CareReference.Range intakeMl,
+            CareReference.Range sleepMinutes,
+            int wetNappiesMin) {
+    }
+
+    /**
+     * Whether each figure may be compared to its reference at all.
+     *
+     * <p>A reference is always drawn as context, but a verdict ("below range") is only
+     * rendered where the recorded data actually supports one. Today is never comparable:
+     * the day is still in progress.
+     */
+    public record DayComparable(boolean intake, boolean sleep, boolean wet) {
+    }
+
     /**
      * One SGT calendar day.
      *
@@ -32,7 +52,13 @@ public final class CareAggregateDtos {
             int diaperSlightlyDirty,
             int diaperDirty,
             int diaperVeryDirty,
-            int diaperUnknown) {
+            int diaperUnknown,
+            /** Changes flagged wet. Only meaningful when `comparable.wet` is true. */
+            int wetCount,
+            /** Changes with no wet/dry recorded — any at all makes the count incomplete. */
+            int wetUnknown,
+            DayReference reference,
+            DayComparable comparable) {
     }
 
     /**

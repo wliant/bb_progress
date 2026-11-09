@@ -6,8 +6,11 @@ import { RequireBaby } from '../components/RequireBaby'
 import { CareTabs } from '../features/care/CareTabs'
 import { DiaperChart, IntakeChart, SimpleBarChart } from '../features/care/CareTrendCharts'
 import { SERIES } from '../features/care/careChartPalette'
+import { sleepVerdict, wetVerdict } from '../features/care/careVerdict'
 import { formatMinutes } from '../lib/careFormat'
 import { todaySgt } from '../lib/dates'
+
+const REFERENCE_PREF_KEY = 'bb.trends.showReference'
 
 const RANGES = [7, 30, 90, 'all'] as const
 type Range = (typeof RANGES)[number]
@@ -28,12 +31,43 @@ function CareTrendsContent() {
   const { t } = useTranslation()
   const [range, setRange] = useState<Range>(30)
   const [showTable, setShowTable] = useState(false)
+  // Remembered locally: whether reference ranges are wanted is a reader's preference,
+  // not something worth a round trip or a column.
+  const [showReference, setShowReference] = useState(
+    () => localStorage.getItem(REFERENCE_PREF_KEY) !== 'off',
+  )
+
+  function toggleReference(next: boolean) {
+    setShowReference(next)
+    localStorage.setItem(REFERENCE_PREF_KEY, next ? 'on' : 'off')
+  }
   const today = todaySgt()
   const { data, isLoading, isError, error, refetch } = useCareAggregates(startFor(range, today), today)
 
   const summary = data?.summary
   const days = data?.days ?? []
   const openSleeps = days.reduce((total, day) => total + day.openSleeps, 0)
+
+  // The widest sleep band holding across the window; the intake band is derived inside
+  // the chart because it also drives that chart's legend.
+  const sleepRanges = days.map((d) => d.reference?.sleepMinutes).filter((r) => r != null)
+  const sleepBand =
+    sleepRanges.length === 0
+      ? null
+      : {
+          low: Math.min(...sleepRanges.map((r) => r!.low)),
+          high: Math.max(...sleepRanges.map((r) => r!.high)),
+        }
+
+  // Say when the intake band rests on a weight that is being carried forward, or on none.
+  const latest = days[days.length - 1]?.reference
+  const weightNote = !latest
+    ? null
+    : latest.intakeMl == null
+      ? t('care.trends.reference.noWeight')
+      : latest.weightEstimated
+        ? t('care.trends.reference.weightEstimated', { date: lastWeighedOn(days) })
+        : null
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -57,6 +91,15 @@ function CareTrendsContent() {
             {t(`care.trends.range.${option}`)}
           </button>
         ))}
+        <label className="ml-auto flex items-center gap-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            checked={showReference}
+            onChange={(e) => toggleReference(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          {t('care.trends.reference.toggle')}
+        </label>
       </div>
 
       {isError ? (
@@ -101,7 +144,10 @@ function CareTrendsContent() {
             />
           </section>
 
-          <IntakeChart days={days} />
+          <IntakeChart days={days} showReference={showReference} />
+          {showReference && weightNote && (
+            <p className="-mt-2 text-xs text-slate-400">{weightNote}</p>
+          )}
           <SimpleBarChart
             days={days}
             dataKey="feedsTotal"
@@ -121,11 +167,29 @@ function CareTrendsContent() {
             title={t('care.trends.sleep')}
             color={SERIES.sleep}
             formatValue={(value) => formatMinutes(t, value)}
+            band={showReference ? sleepBand : null}
+            verdict={showReference ? (day) => sleepVerdict(t, day) : undefined}
+            footnote={showReference ? t('care.trends.reference.sleepNote') : undefined}
           />
           {openSleeps > 0 && (
             <p className="text-xs text-slate-400">{t('care.trends.openSleeps', { count: openSleeps })}</p>
           )}
           <DiaperChart days={days} />
+          <SimpleBarChart
+            days={days}
+            dataKey="wetCount"
+            title={t('care.trends.reference.wetTitle')}
+            color={SERIES.wet}
+            minLine={showReference ? (days[0]?.reference?.wetNappiesMin ?? null) : null}
+            verdict={showReference ? (day) => wetVerdict(t, day) : undefined}
+            footnote={showReference ? t('care.trends.reference.wetNote') : undefined}
+          />
+
+          {showReference && (
+            <p className="text-xs text-slate-400">
+              {t('care.trends.reference.intakeNote')} {t('care.trends.reference.disclaimer')}
+            </p>
+          )}
 
           {/* A table view so every figure is reachable without reading a color. */}
           <button
@@ -141,6 +205,15 @@ function CareTrendsContent() {
       )}
     </div>
   )
+}
+
+/** The most recent day whose weight came from an actual measurement. */
+function lastWeighedOn(days: import('../api/types').DayAggregate[]): string {
+  for (let i = days.length - 1; i >= 0; i--) {
+    const ref = days[i].reference
+    if (ref?.weightKg != null && !ref.weightEstimated) return days[i].date
+  }
+  return ''
 }
 
 function Tile({ label, value, hint }: { label: string; value: string; hint: string }) {

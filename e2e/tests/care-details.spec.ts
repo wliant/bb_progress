@@ -114,3 +114,69 @@ test('the trends view totals the day and names its coverage', async ({ page, req
   await expect(page.getByRole('table')).toBeVisible()
   await expect(page.getByText('(2/3)')).toBeVisible()
 })
+
+test('a diaper change records wetness separately from dirtiness', async ({ page }) => {
+  await page.getByRole('button', { name: /换尿布/ }).click()
+  await page.locator('li').first().click()
+
+  const dialog = page.getByRole('dialog')
+  // Two independent facts: a change can be wet and clean, or dirty and dry.
+  await dialog.getByRole('button', { name: '干净', exact: true }).click()
+  await dialog.getByRole('button', { name: '尿湿', exact: true }).click()
+  await dialog.getByRole('button', { name: '保存' }).click()
+  await expect(dialog).toBeHidden()
+
+  await page.locator('li').first().click()
+  const reopened = page.getByRole('dialog')
+  await expect(reopened.getByRole('button', { name: '干净', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(reopened.getByRole('button', { name: '尿湿', exact: true })).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('reference ranges are shown, explained and can be switched off', async ({ page, request }) => {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date())
+  // A weight is what the intake band is derived from, and a chart with no data at all
+  // renders its empty state rather than a legend, so there has to be a feed too.
+  await request.post('/api/growth-records', { data: { measuredOn: today, weightKg: 4.7 } })
+  await request.post('/api/care-logs', {
+    data: {
+      type: 'FEEDING',
+      loggedAt: new Date(Date.now() - 60_000).toISOString(),
+      method: 'BOTTLE',
+      amountMl: 120,
+    },
+  })
+
+  await page.goto('/care/trends')
+  await expect(page.getByText('常见范围').first()).toBeVisible()
+  // Reference information is never presented as advice for this baby.
+  await expect(page.getByText(/并非针对您宝宝的建议/)).toBeVisible()
+
+  const toggle = page.getByLabel('显示参考范围')
+  await expect(toggle).toBeChecked()
+  await toggle.uncheck()
+  await expect(page.getByText('常见范围')).toHaveCount(0)
+  await expect(page.getByText(/并非针对您宝宝的建议/)).toHaveCount(0)
+
+  // The preference survives a reload.
+  await page.reload()
+  await expect(page.getByLabel('显示参考范围')).not.toBeChecked()
+})
+
+test('a day with an unmeasured feed is never called below the range', async ({ page, request }) => {
+  const minutesAgo = (n: number) => new Date(Date.now() - n * 60_000).toISOString()
+  await request.post('/api/growth-records', {
+    data: { measuredOn: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date()), weightKg: 4.7 },
+  })
+  // Far below the 564-846 ml band, but one feed was never measured.
+  await request.post('/api/care-logs', {
+    data: { type: 'FEEDING', loggedAt: minutesAgo(3), method: 'BOTTLE', amountMl: 100 },
+  })
+  await request.post('/api/care-logs', {
+    data: { type: 'FEEDING', loggedAt: minutesAgo(2), method: 'BREAST', durationMin: 20 },
+  })
+
+  await page.goto('/care/trends')
+  await expect(page.getByText('常见范围').first()).toBeVisible()
+  // The verdict is withheld rather than inventing a shortfall out of a recording gap.
+  await expect(page.getByText('低于常见范围')).toHaveCount(0)
+})

@@ -18,6 +18,7 @@ const base: CareLog = {
   endedAt: null,
   sleepMinutes: null,
   condition: null,
+  wet: null,
   media: [],
 }
 

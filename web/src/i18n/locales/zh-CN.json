@@ -192,10 +192,36 @@
       "hours": "{{hours}} 小时",
       "showTable": "显示数据表",
       "hideTable": "隐藏数据表",
-      "noneInRange": "此区间没有记录"
+      "noneInRange": "此区间没有记录",
+      "reference": {
+        "toggle": "显示参考范围",
+        "legend": "常见范围",
+        "legendMin": "建议下限",
+        "within": "在常见范围内",
+        "below": "低于常见范围",
+        "above": "高于常见范围",
+        "notComparableIntake": "无法比较 — 有 {{count}} 次喂养未记录奶量",
+        "notComparableSleep": "无法比较 — 有睡眠尚未结束",
+        "notComparableSleepNone": "无法比较 — 没有记录结束时间的睡眠",
+        "notComparableWet": "无法比较 — 有 {{count}} 次换尿布未记录干湿",
+        "notComparableToday": "无法比较 — 今天还没过完",
+        "noneComparable": "此区间暂时无法比较，请看下方说明。",
+        "weightEstimated": "体重沿用 {{date}} 的记录",
+        "noWeight": "没有可用体重 — 添加生长记录后才会显示奶量范围",
+        "disclaimer": "这是健康足月婴儿的一般参考范围，并非针对您宝宝的建议。请以儿科医生的数据为准。",
+        "intakeNote": "该范围适用于瓶喂或吸出的母乳。直接亲喂的宝宝会自行调节摄入量。",
+        "sleepNote": "仅统计记录了结束时间的睡眠，未全部记录时数值会偏低。",
+        "wetNote": "前提是每次换尿布都有记录，这一点应用无法验证。",
+        "wetTitle": "每日尿湿次数"
+      }
     },
     "hoursShort": "{{h}}小时",
-    "minutesShort": "{{m}}分"
+    "minutesShort": "{{m}}分",
+    "wet": {
+      "label": "是否尿湿",
+      "WET": "尿湿",
+      "DRY": "没湿"
+    }
   },
   "home": {
     "welcome": "欢迎回来",

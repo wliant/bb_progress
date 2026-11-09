@@ -4,13 +4,16 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
-import type { DayAggregate } from '../../api/types'
-import { AXIS, CONDITION_COLORS, GRID, PARTIAL_PATTERN_ID, SERIES } from './careChartPalette'
+import type { DayAggregate, ReferenceRange } from '../../api/types'
+import { AXIS, CONDITION_COLORS, GRID, PARTIAL_PATTERN_ID, REFERENCE, SERIES } from './careChartPalette'
+import { intakeVerdict, type Verdict } from './careVerdict'
 
 /** Day labels are already SGT calendar dates from the API; show them as DD/MM. */
 function dayTick(date: string): string {
@@ -64,6 +67,65 @@ function PartialHatch() {
   )
 }
 
+/**
+ * The band behind the bars. Flat across the window rather than per-day, because the
+ * reference moves with weight and age slowly enough that a stepped band would read as
+ * data. Uses the widest low and narrowest high in view, so it never overstates the range.
+ */
+function ReferenceBand({ range }: { range: ReferenceRange | null }) {
+  if (!range) return null
+  return (
+    <ReferenceArea
+      y1={range.low}
+      y2={range.high}
+      fill={REFERENCE.band}
+      fillOpacity={REFERENCE.bandOpacity}
+      stroke={REFERENCE.line}
+      strokeOpacity={0.25}
+      strokeDasharray="3 3"
+      ifOverflow="extendDomain"
+    />
+  )
+}
+
+/** Legend swatch for the band, built by hand like the others in this file. */
+function ReferenceLegend({ label, min }: { label: string; min?: boolean }) {
+  return (
+    <li className="flex items-center gap-1.5">
+      <span
+        aria-hidden
+        className="h-3 w-3 rounded-sm border border-dashed"
+        style={{
+          borderColor: REFERENCE.line,
+          background: min ? 'transparent' : REFERENCE.band,
+          opacity: min ? 0.6 : 0.35,
+        }}
+      />
+      {label}
+    </li>
+  )
+}
+
+/** The widest band that holds for every day in view. */
+function bandFor(days: DayAggregate[], pick: (d: DayAggregate) => ReferenceRange | null | undefined) {
+  const ranges = days.map(pick).filter((r): r is ReferenceRange => r != null)
+  if (ranges.length === 0) return null
+  return {
+    low: Math.min(...ranges.map((r) => r.low)),
+    high: Math.max(...ranges.map((r) => r.high)),
+  }
+}
+
+/** Verdict text under a tooltip, in the muted ink the rest of the UI uses. */
+function VerdictLine({ verdict }: { verdict: Verdict | null }) {
+  if (!verdict) return null
+  return (
+    <p className={verdict.kind === 'notComparable' ? 'text-slate-400' : 'text-slate-600'}>
+      {verdict.text}
+    </p>
+  )
+}
+
 const axisProps = {
   stroke: AXIS,
   fontSize: 11,
@@ -75,8 +137,9 @@ const axisProps = {
  * rather than drawn solid, because their bar understates the day by an unknown margin.
  * The tooltip always names the coverage, so no figure here is ever read as a bare total.
  */
-export function IntakeChart({ days }: { days: DayAggregate[] }) {
+export function IntakeChart({ days, showReference }: { days: DayAggregate[]; showReference: boolean }) {
   const { t } = useTranslation()
+  const band = showReference ? bandFor(days, (d) => d.reference?.intakeMl) : null
   return (
     <Frame
       title={t('care.trends.intake')}
@@ -101,11 +164,13 @@ export function IntakeChart({ days }: { days: DayAggregate[] }) {
           />
           {t('care.trends.intakePartial')}
         </li>
+        {band && <ReferenceLegend label={t('care.trends.reference.legend')} />}
       </ul>
       <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
         <BarChart data={days} margin={{ top: 4, right: 8, bottom: 0, left: 4 }}>
           <PartialHatch />
           <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false} />
+          <ReferenceBand range={band} />
           <XAxis dataKey="date" tickFormatter={dayTick} {...axisProps} />
           <YAxis unit=" ml" {...axisProps} />
           <Tooltip
@@ -122,6 +187,7 @@ export function IntakeChart({ days }: { days: DayAggregate[] }) {
                       total: day.feedsTotal,
                     })}
                   </p>
+                  {showReference && <VerdictLine verdict={intakeVerdict(t, day)} />}
                 </div>
               )
             }}
@@ -154,6 +220,11 @@ export function SimpleBarChart({
   color,
   unit,
   formatValue,
+  band,
+  minLine,
+  verdict,
+  legendLabel,
+  footnote,
 }: {
   days: DayAggregate[]
   dataKey: keyof DayAggregate
@@ -161,21 +232,68 @@ export function SimpleBarChart({
   color: string
   unit?: string
   formatValue?: (value: number) => string
+  /** Typical-range band drawn behind the bars; omitted when references are hidden. */
+  band?: ReferenceRange | null
+  /** A floor rather than a band, for a reference with no meaningful upper bound. */
+  minLine?: number | null
+  verdict?: (day: DayAggregate) => Verdict | null
+  legendLabel?: string
+  footnote?: string
 }) {
+  const { t } = useTranslation()
+  const empty = days.every((day) => Number(day[dataKey]) === 0)
+  // Nothing comparable is worth saying out loud, so a reader does not wait for a verdict
+  // that will never come. Only when there is data to compare in the first place.
+  const noneComparable =
+    !empty && verdict != null && days.every((day) => {
+      const v = verdict(day)
+      return v == null || v.kind === 'notComparable'
+    })
+
   return (
-    <Frame title={title} empty={days.every((day) => Number(day[dataKey]) === 0)}>
+    <Frame title={title} empty={empty} footnote={footnote}>
+      {(band || minLine != null) && (
+        <ul className="mb-1 flex flex-wrap gap-3 text-xs text-slate-500">
+          <li className="flex items-center gap-1.5">
+            <span aria-hidden className="h-3 w-3 rounded-sm" style={{ background: color }} />
+            {legendLabel ?? title}
+          </li>
+          <ReferenceLegend
+            label={minLine != null ? t('care.trends.reference.legendMin') : t('care.trends.reference.legend')}
+            min={minLine != null}
+          />
+        </ul>
+      )}
       <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
         <BarChart data={days} margin={{ top: 4, right: 8, bottom: 0, left: 4 }}>
           <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false} />
+          <ReferenceBand range={band ?? null} />
+          {minLine != null && (
+            <ReferenceLine
+              y={minLine}
+              stroke={REFERENCE.line}
+              strokeDasharray="4 4"
+              strokeOpacity={0.6}
+              ifOverflow="extendDomain"
+            />
+          )}
           <XAxis dataKey="date" tickFormatter={dayTick} {...axisProps} />
-          <YAxis unit={unit} {...axisProps} />
+          <YAxis unit={unit} allowDecimals={false} {...axisProps} />
           <Tooltip
-            labelFormatter={(date) => String(date)}
-            formatter={(value) => [
-              formatValue ? formatValue(Number(value)) : `${value}${unit ?? ''}`,
-              title,
-            ]}
-            contentStyle={{ fontSize: 12, borderRadius: 8, borderColor: GRID }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null
+              const day = payload[0].payload as DayAggregate
+              const value = Number(day[dataKey])
+              return (
+                <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow">
+                  <p className="font-semibold text-slate-700">{day.date}</p>
+                  <p className="text-slate-600">
+                    {formatValue ? formatValue(value) : `${value}${unit ?? ''}`}
+                  </p>
+                  {verdict && <VerdictLine verdict={verdict(day)} />}
+                </div>
+              )
+            }}
           />
           <Bar
             dataKey={dataKey}
@@ -186,6 +304,9 @@ export function SimpleBarChart({
           />
         </BarChart>
       </ResponsiveContainer>
+      {noneComparable && (
+        <p className="mt-1 text-xs text-slate-400">{t('care.trends.reference.noneComparable')}</p>
+      )}
     </Frame>
   )
 }

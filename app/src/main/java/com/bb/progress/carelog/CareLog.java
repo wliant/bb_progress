@@ -52,6 +52,11 @@ public class CareLog {
     @Column(name = "condition")
     private DiaperCondition condition;
 
+    /** Whether the nappy was wet. Independent of {@link #condition}: a change can be
+     *  wet and clean, or dirty and dry. Null on entries recorded before V12. */
+    @Column(name = "wet")
+    private Boolean wet;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -149,6 +154,14 @@ public class CareLog {
 
     public void setCondition(DiaperCondition condition) {
         this.condition = condition;
+    }
+
+    public Boolean getWet() {
+        return wet;
+    }
+
+    public void setWet(Boolean wet) {
+        this.wet = wet;
     }
 
     /** Minutes asleep, or null while the nap is still open. Derived, never stored. */

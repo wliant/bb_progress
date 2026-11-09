@@ -36,4 +36,9 @@ public interface CareAggregateRow {
     int getDiaperVeryDirty();
 
     int getDiaperUnknown();
+
+    int getWetCount();
+
+    /** Changes with no wet flag recorded — any at all makes the day's wet count incomplete. */
+    int getWetUnknown();
 }

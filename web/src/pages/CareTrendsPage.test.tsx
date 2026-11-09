@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { screen } from '@testing-library/react'
+import { cleanup, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { CareTrendsPage } from './CareTrendsPage'
@@ -69,5 +69,51 @@ describe('CareTrendsPage', () => {
     renderApp(<CareTrendsPage />)
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(screen.getByText('日期范围无效')).toBeInTheDocument()
+  })
+})
+
+describe('CareTrendsPage reference ranges', () => {
+  it('shows the typical-range legend and the disclaimer by default', async () => {
+    renderApp(<CareTrendsPage />)
+    // One per chart carrying a band, so assert on presence rather than uniqueness.
+    expect((await screen.findAllByText('常见范围')).length).toBeGreaterThan(0)
+    expect(screen.getByText(/并非针对您宝宝的建议/)).toBeInTheDocument()
+  })
+
+  it('hides every reference element when the toggle is off, and remembers it', async () => {
+    renderApp(<CareTrendsPage />)
+    const toggle = await screen.findByLabelText('显示参考范围')
+    expect(toggle).toBeChecked()
+
+    await userEvent.click(toggle)
+    expect(screen.queryAllByText('常见范围')).toHaveLength(0)
+    expect(screen.queryByText(/并非针对您宝宝的建议/)).not.toBeInTheDocument()
+    expect(localStorage.getItem('bb.trends.showReference')).toBe('off')
+
+    // The preference is read back on the next mount.
+    cleanup()
+    renderApp(<CareTrendsPage />)
+    expect(await screen.findByLabelText('显示参考范围')).not.toBeChecked()
+    localStorage.clear()
+  })
+
+  it('says the weight is being carried forward rather than implying it was measured', async () => {
+    renderApp(<CareTrendsPage />)
+    expect(await screen.findByText(/体重沿用/)).toBeInTheDocument()
+  })
+
+  it('notes that nothing in the sleep range can be compared yet', async () => {
+    renderApp(<CareTrendsPage />)
+    // Fixture has one closed-sleep day and one open; the open one blocks a verdict, and
+    // sleep must never render as a deficit while anything is unknown.
+    expect((await screen.findAllByText('每日睡眠')).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/低于常见范围/)).not.toBeInTheDocument()
+  })
+
+  it('charts wet nappies against the suggested minimum', async () => {
+    renderApp(<CareTrendsPage />)
+    expect((await screen.findAllByText('每日尿湿次数')).length).toBeGreaterThan(0)
+    expect(screen.getByText('建议下限')).toBeInTheDocument()
+    expect(screen.getByText(/应用无法验证/)).toBeInTheDocument()
   })
 })

@@ -33,6 +33,8 @@ public final class CareLogDtos {
         OffsetDateTime endedAt();
 
         DiaperCondition condition();
+
+        Boolean wet();
     }
 
     public record CareLogCreateRequest(
@@ -44,7 +46,8 @@ public final class CareLogDtos {
             @Min(1) @Max(180) Integer durationMin,
             OffsetDateTime startedAt,
             OffsetDateTime endedAt,
-            DiaperCondition condition) implements CareDetail {
+            DiaperCondition condition,
+            Boolean wet) implements CareDetail {
     }
 
     public record CareLogUpdateRequest(
@@ -55,7 +58,8 @@ public final class CareLogDtos {
             @Min(1) @Max(180) Integer durationMin,
             OffsetDateTime startedAt,
             OffsetDateTime endedAt,
-            DiaperCondition condition) implements CareDetail {
+            DiaperCondition condition,
+            Boolean wet) implements CareDetail {
     }
 
     public record CareLogResponse(
@@ -71,6 +75,7 @@ public final class CareLogDtos {
             /** Derived from the window, so the client never computes it differently. */
             Long sleepMinutes,
             DiaperCondition condition,
+            Boolean wet,
             List<MediaView> media) {
 
         public static CareLogResponse from(CareLog log, List<MediaView> media) {
@@ -86,6 +91,7 @@ public final class CareLogDtos {
                     sgt(log.getEndedAt()),
                     log.getSleepMinutes(),
                     log.getCondition(),
+                    log.getWet(),
                     media);
         }
 

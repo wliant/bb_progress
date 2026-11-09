@@ -96,7 +96,8 @@ export const testCareLogs: CareLog[] = [
     endedAt: null,
     sleepMinutes: null,
     condition: null,
-    media: [],
+    wet: null,
+  media: [],
   },
 ]
 
@@ -125,6 +126,16 @@ export const testCareAggregates = {
       diaperDirty: 0,
       diaperVeryDirty: 0,
       diaperUnknown: 0,
+      wetCount: 7,
+      wetUnknown: 0,
+      reference: {
+        weightKg: 4.7,
+        weightEstimated: false,
+        intakeMl: { low: 564, high: 846 },
+        sleepMinutes: { low: 840, high: 1020 },
+        wetNappiesMin: 6,
+      },
+      comparable: { intake: true, sleep: true, wet: true },
     },
     {
       date: '2026-05-10',
@@ -142,6 +153,16 @@ export const testCareAggregates = {
       diaperDirty: 0,
       diaperVeryDirty: 0,
       diaperUnknown: 1,
+      wetCount: 0,
+      wetUnknown: 1,
+      reference: {
+        weightKg: 4.7,
+        weightEstimated: true,
+        intakeMl: { low: 564, high: 846 },
+        sleepMinutes: { low: 840, high: 1020 },
+        wetNappiesMin: 6,
+      },
+      comparable: { intake: false, sleep: false, wet: false },
     },
   ],
   summary: {

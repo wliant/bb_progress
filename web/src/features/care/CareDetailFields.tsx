@@ -12,6 +12,8 @@ export interface DetailDraft {
   startedAt: string
   endedAt: string
   condition: DiaperCondition | ''
+  /** Tri-state: null means nobody recorded whether it was wet, which is not "dry". */
+  wet: boolean | null
 }
 
 /** Seeds the draft from an entry; the inputs are strings so a field can be left blank. */
@@ -24,6 +26,7 @@ export function detailDraftFrom(log: CareLog): DetailDraft {
     startedAt: log.startedAt?.slice(0, 16) ?? '',
     endedAt: log.endedAt?.slice(0, 16) ?? '',
     condition: log.condition ?? '',
+    wet: log.wet,
   }
 }
 
@@ -46,7 +49,7 @@ export function detailPayload(type: CareLog['type'], draft: DetailDraft) {
         endedAt: draft.endedAt ? `${draft.endedAt}:00+08:00` : null,
       }
     case 'DIAPER':
-      return { condition: draft.condition || null }
+      return { condition: draft.condition || null, wet: draft.wet }
   }
 }
 
@@ -175,12 +178,23 @@ export function CareDetailFields({
   }
 
   return (
-    <Choices
-      label={t('care.condition.label')}
-      options={CONDITIONS}
-      value={draft.condition}
-      onChange={(v) => set('condition', v)}
-      labelFor={(c) => t(`care.condition.${c}`)}
-    />
+    <>
+      <Choices
+        label={t('care.condition.label')}
+        options={CONDITIONS}
+        value={draft.condition}
+        onChange={(v) => set('condition', v)}
+        labelFor={(c) => t(`care.condition.${c}`)}
+      />
+      {/* Wetness is a separate fact from dirtiness -- a change can be wet and clean, or
+          dirty and dry -- and it is what the hydration reference in spec 10 counts. */}
+      <Choices
+        label={t('care.wet.label')}
+        options={['WET', 'DRY'] as const}
+        value={draft.wet === null ? '' : draft.wet ? 'WET' : 'DRY'}
+        onChange={(v) => set('wet', v === '' ? null : v === 'WET')}
+        labelFor={(v) => t(`care.wet.${v}`)}
+      />
+    </>
   )
 }

@@ -52,7 +52,11 @@ public interface CareLogRepository extends JpaRepository<CareLog, UUID> {
                    COUNT(*) FILTER (WHERE type = 'DIAPER' AND condition = 'VERY_DIRTY')::int
                        AS "diaperVeryDirty",
                    COUNT(*) FILTER (WHERE type = 'DIAPER' AND condition IS NULL)::int
-                       AS "diaperUnknown"
+                       AS "diaperUnknown",
+                   COUNT(*) FILTER (WHERE type = 'DIAPER' AND wet)::int
+                       AS "wetCount",
+                   COUNT(*) FILTER (WHERE type = 'DIAPER' AND wet IS NULL)::int
+                       AS "wetUnknown"
             FROM care_log
             WHERE logged_at >= :fromInclusive AND logged_at < :toExclusive
             GROUP BY "day"

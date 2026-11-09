@@ -109,6 +109,8 @@ export interface CareLog {
   /** Derived server-side from the window, so the client never computes it differently. */
   sleepMinutes: number | null
   condition: DiaperCondition | null
+  /** Whether the nappy was wet. Independent of condition; null before V12. */
+  wet: boolean | null
   media: Media[]
 }
 
@@ -120,6 +122,7 @@ export interface CareLogDetailInput {
   startedAt?: string | null
   endedAt?: string | null
   condition?: DiaperCondition | null
+  wet?: boolean | null
 }
 
 export interface DayAggregate {
@@ -140,6 +143,37 @@ export interface DayAggregate {
   diaperDirty: number
   diaperVeryDirty: number
   diaperUnknown: number
+  /** Changes flagged wet. Only meaningful when `comparable.wet`. */
+  wetCount: number
+  /** Changes with no wet/dry recorded — any at all makes the count incomplete. */
+  wetUnknown: number
+  /** Published ranges for this day; null where none can be produced. */
+  reference: DayReference | null
+  comparable: DayComparable
+}
+
+export interface ReferenceRange {
+  low: number
+  high: number
+}
+
+export interface DayReference {
+  weightKg: number | null
+  /** True when the weight is a stand-in rather than interpolated between measurements. */
+  weightEstimated: boolean
+  intakeMl: ReferenceRange | null
+  sleepMinutes: ReferenceRange | null
+  wetNappiesMin: number
+}
+
+/**
+ * Whether each figure may be compared to its reference at all. A reference is always drawn
+ * as context, but a verdict is only rendered where the recorded data supports one.
+ */
+export interface DayComparable {
+  intake: boolean
+  sleep: boolean
+  wet: boolean
 }
 
 export interface AggregateSummary {
