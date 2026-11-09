@@ -84,8 +84,80 @@ export const testNewbornAssessment = {
 }
 
 export const testCareLogs: CareLog[] = [
-  { id: 'c1', type: 'FEEDING', loggedAt: '2026-05-10T09:30:00+08:00', note: '150ml', media: [] },
+  {
+    id: 'c1',
+    type: 'FEEDING',
+    loggedAt: '2026-05-10T09:30:00+08:00',
+    note: null,
+    method: 'BOTTLE',
+    amountMl: 150,
+    durationMin: null,
+    startedAt: null,
+    endedAt: null,
+    sleepMinutes: null,
+    condition: null,
+    media: [],
+  },
 ]
+
+/**
+ * Two days that between them cover the case the aggregate view exists to handle: one
+ * where every feed was measured, and one where some were not, so its total understates
+ * the day.
+ */
+export const testCareAggregates = {
+  from: '2026-05-09',
+  to: '2026-05-10',
+  days: [
+    {
+      date: '2026-05-09',
+      amountMl: 600,
+      feedsTotal: 8,
+      feedsWithAmount: 8,
+      breastMinutes: 0,
+      partial: false,
+      sleepMinutes: 95,
+      sleepSessions: 1,
+      openSleeps: 0,
+      diaperTotal: 2,
+      diaperClean: 1,
+      diaperSlightlyDirty: 1,
+      diaperDirty: 0,
+      diaperVeryDirty: 0,
+      diaperUnknown: 0,
+    },
+    {
+      date: '2026-05-10',
+      amountMl: 420,
+      feedsTotal: 9,
+      feedsWithAmount: 6,
+      breastMinutes: 48,
+      partial: true,
+      sleepMinutes: 0,
+      sleepSessions: 1,
+      openSleeps: 1,
+      diaperTotal: 1,
+      diaperClean: 0,
+      diaperSlightlyDirty: 0,
+      diaperDirty: 0,
+      diaperVeryDirty: 0,
+      diaperUnknown: 1,
+    },
+  ],
+  summary: {
+    amountMl: 1020,
+    feedsTotal: 17,
+    feedsWithAmount: 14,
+    breastMinutes: 48,
+    sleepMinutes: 95,
+    diaperTotal: 3,
+    daysWithData: 2,
+    coveragePct: 82.4,
+    avgAmountMlPerDay: 510,
+    avgFeedsPerDay: 8.5,
+    avgSleepMinutesPerDay: 47.5,
+  },
+}
 
 /** Mirrors the backend's error contract: every failure carries a stable `code`. */
 export function apiError(status: number, code: string) {
@@ -155,6 +227,7 @@ export const handlers = [
   http.get('/api/newborn-assessment', () => HttpResponse.json(testNewbornAssessment)),
   http.get('/api/care-logs', () => HttpResponse.json(testCareLogs)),
   http.get('/api/media', () => HttpResponse.json(testMedia)),
+  http.get('/api/care-aggregates', () => HttpResponse.json(testCareAggregates)),
 ]
 
 export const server = setupServer(...handlers)

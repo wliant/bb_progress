@@ -30,7 +30,7 @@ describe('HomePage', () => {
     renderApp(<HomePage />)
     expect(await screen.findByText('最近记录')).toBeInTheDocument()
     expect(await screen.findByText('09:30')).toBeInTheDocument()
-    expect(screen.getByText(/150ml/)).toBeInTheDocument()
+    expect(screen.getByText(/150 ml/)).toBeInTheDocument()
   })
 
   // The point of the recent list: one-tap logs get their detail added afterwards.
@@ -44,7 +44,7 @@ describe('HomePage', () => {
       }),
     )
     renderApp(<HomePage />)
-    await userEvent.click(await screen.findByText(/150ml/))
+    await userEvent.click(await screen.findByText(/150 ml/))
 
     const dialog = await screen.findByRole('dialog')
     expect(dialog).toHaveTextContent('喂奶')

@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -26,6 +27,30 @@ public class CareLog {
     private Instant loggedAt;
 
     private String note;
+
+    // Feeding detail. Both quantities are independently optional: a bottle records an
+    // amount, a breastfeed may record minutes, an amount, or both. See spec 08.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "feed_method")
+    private FeedMethod feedMethod;
+
+    @Column(name = "amount_ml")
+    private Integer amountMl;
+
+    @Column(name = "duration_min")
+    private Integer durationMin;
+
+    // Sleep window. A null end means the nap is still in progress; the duration is always
+    // derived from the pair so an edit cannot leave a stored duration disagreeing with it.
+    @Column(name = "started_at")
+    private Instant startedAt;
+
+    @Column(name = "ended_at")
+    private Instant endedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "condition")
+    private DiaperCondition condition;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -76,6 +101,62 @@ public class CareLog {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public FeedMethod getFeedMethod() {
+        return feedMethod;
+    }
+
+    public void setFeedMethod(FeedMethod feedMethod) {
+        this.feedMethod = feedMethod;
+    }
+
+    public Integer getAmountMl() {
+        return amountMl;
+    }
+
+    public void setAmountMl(Integer amountMl) {
+        this.amountMl = amountMl;
+    }
+
+    public Integer getDurationMin() {
+        return durationMin;
+    }
+
+    public void setDurationMin(Integer durationMin) {
+        this.durationMin = durationMin;
+    }
+
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    public void setStartedAt(Instant startedAt) {
+        this.startedAt = startedAt;
+    }
+
+    public Instant getEndedAt() {
+        return endedAt;
+    }
+
+    public void setEndedAt(Instant endedAt) {
+        this.endedAt = endedAt;
+    }
+
+    public DiaperCondition getCondition() {
+        return condition;
+    }
+
+    public void setCondition(DiaperCondition condition) {
+        this.condition = condition;
+    }
+
+    /** Minutes asleep, or null while the nap is still open. Derived, never stored. */
+    public Long getSleepMinutes() {
+        if (startedAt == null || endedAt == null) {
+            return null;
+        }
+        return Duration.between(startedAt, endedAt).toMinutes();
     }
 
 }

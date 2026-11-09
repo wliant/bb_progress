@@ -48,6 +48,12 @@ public class CareLogController {
         return service.update(id, request);
     }
 
+    /** Ends an open sleep at the current time — the "woke up" tap. */
+    @PostMapping("/{id}/end-sleep")
+    public CareLogResponse endSleep(@PathVariable UUID id) {
+        return service.endSleep(id);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {

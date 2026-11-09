@@ -15,6 +15,8 @@ import type {
   NewbornAssessment,
   GalleryItem,
   Media,
+  CareLogDetailInput,
+  CareAggregates,
 } from './types'
 
 export function useBaby() {
@@ -188,18 +190,27 @@ export function useCareLogs(date: string) {
 export function useCreateCareLog() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (input: { type: CareType; loggedAt?: string; note?: string }) =>
+    mutationFn: (input: { type: CareType; loggedAt?: string; note?: string } & CareLogDetailInput) =>
       apiSend<CareLog>('POST', '/api/care-logs', input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['care-logs'] }),
+    onSuccess: () => invalidateCare(queryClient),
   })
 }
 
 export function useUpdateCareLog() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, loggedAt, note }: { id: string; loggedAt: string; note?: string }) =>
-      apiSend<CareLog>('PUT', `/api/care-logs/${id}`, { loggedAt, note }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['care-logs'] }),
+    mutationFn: ({ id, ...body }: { id: string; loggedAt: string; note?: string } & CareLogDetailInput) =>
+      apiSend<CareLog>('PUT', `/api/care-logs/${id}`, body),
+    onSuccess: () => invalidateCare(queryClient),
+  })
+}
+
+/** The "woke up" tap: closes an open sleep server-side at the current time. */
+export function useEndSleep() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => apiSend<CareLog>('POST', `/api/care-logs/${id}/end-sleep`),
+    onSuccess: () => invalidateCare(queryClient),
   })
 }
 
@@ -208,9 +219,25 @@ export function useDeleteCareLog() {
   return useMutation({
     mutationFn: (id: string) => apiSend('DELETE', `/api/care-logs/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['care-logs'] })
+      invalidateCare(queryClient)
       queryClient.invalidateQueries({ queryKey: ['media'] })
     },
+  })
+}
+
+/**
+ * The trends view is a read-only projection of the same entries, so it has to refresh
+ * whenever one changes — the same reason a media change invalidates all three keys.
+ */
+function invalidateCare(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['care-logs'] })
+  queryClient.invalidateQueries({ queryKey: ['care-aggregates'] })
+}
+
+export function useCareAggregates(from: string, to: string) {
+  return useQuery<CareAggregates>({
+    queryKey: ['care-aggregates', from, to],
+    queryFn: () => apiGet(`/api/care-aggregates?from=${from}&to=${to}`),
   })
 }
 

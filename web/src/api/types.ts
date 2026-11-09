@@ -1,6 +1,8 @@
 export type Gender = 'MALE' | 'FEMALE'
 export type GrowthMeasure = 'WEIGHT' | 'HEIGHT' | 'HEAD_CIRCUMFERENCE'
 export type CareType = 'FEEDING' | 'SLEEP' | 'DIAPER'
+export type FeedMethod = 'BREAST' | 'BOTTLE' | 'BOTH'
+export type DiaperCondition = 'CLEAN' | 'SLIGHTLY_DIRTY' | 'DIRTY' | 'VERY_DIRTY'
 export type MilestoneCategory = 'SOCIAL' | 'LANGUAGE' | 'COGNITIVE' | 'MOTOR'
 
 export interface Baby {
@@ -95,7 +97,70 @@ export interface CareLog {
   type: CareType
   loggedAt: string
   note: string | null
+  /** Feeding detail; null on other types. */
+  method: FeedMethod | null
+  /** Volume taken. Null means it was never measured, which is not the same as zero. */
+  amountMl: number | null
+  /** Minutes at the breast; null for a bottle feed. */
+  durationMin: number | null
+  /** Sleep window; null on other types. A null end means the nap is still open. */
+  startedAt: string | null
+  endedAt: string | null
+  /** Derived server-side from the window, so the client never computes it differently. */
+  sleepMinutes: number | null
+  condition: DiaperCondition | null
   media: Media[]
+}
+
+/** The detail fields a write may carry. Each belongs to exactly one care type. */
+export interface CareLogDetailInput {
+  method?: FeedMethod | null
+  amountMl?: number | null
+  durationMin?: number | null
+  startedAt?: string | null
+  endedAt?: string | null
+  condition?: DiaperCondition | null
+}
+
+export interface DayAggregate {
+  date: string
+  amountMl: number
+  feedsTotal: number
+  /** Feeds that recorded a volume. Below feedsTotal means the day's total is incomplete. */
+  feedsWithAmount: number
+  breastMinutes: number
+  /** True when some feed's volume was never measured, so amountMl understates the day. */
+  partial: boolean
+  sleepMinutes: number
+  sleepSessions: number
+  openSleeps: number
+  diaperTotal: number
+  diaperClean: number
+  diaperSlightlyDirty: number
+  diaperDirty: number
+  diaperVeryDirty: number
+  diaperUnknown: number
+}
+
+export interface AggregateSummary {
+  amountMl: number
+  feedsTotal: number
+  feedsWithAmount: number
+  breastMinutes: number
+  sleepMinutes: number
+  diaperTotal: number
+  daysWithData: number
+  coveragePct: number
+  avgAmountMlPerDay: number
+  avgFeedsPerDay: number
+  avgSleepMinutesPerDay: number
+}
+
+export interface CareAggregates {
+  from: string
+  to: string
+  days: DayAggregate[]
+  summary: AggregateSummary
 }
 
 export interface ApiErrorBody {

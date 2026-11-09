@@ -7,6 +7,7 @@ import { ErrorState } from '../components/ErrorState'
 import { RequireBaby } from '../components/RequireBaby'
 import { CareLogList } from '../features/care/CareLogList'
 import { CareLogEditDialog } from '../features/care/CareLogEditDialog'
+import { CareTabs } from '../features/care/CareTabs'
 import type { CareType } from '../api/types'
 import { timeSgt, todaySgt } from '../lib/dates'
 
@@ -44,6 +45,8 @@ function CareLogsContent() {
           aria-label={t('common.date')}
         />
       </div>
+
+      <CareTabs />
 
       <section className="rounded-2xl bg-white p-5 shadow-sm">
         <h3 className="mb-3 text-sm font-semibold text-slate-700">

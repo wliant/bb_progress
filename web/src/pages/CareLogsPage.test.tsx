@@ -10,7 +10,7 @@ describe('CareLogsPage', () => {
   it('lists the day entries with SGT times', async () => {
     renderApp(<CareLogsPage />)
     expect(await screen.findByText('09:30')).toBeInTheDocument()
-    expect(screen.getByText(/150ml/)).toBeInTheDocument()
+    expect(screen.getByText(/150 ml/)).toBeInTheDocument()
   })
 
   it('logs now with no time field when today is selected', async () => {

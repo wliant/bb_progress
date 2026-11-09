@@ -57,8 +57,9 @@ public class CareLogService {
         babyService.get();
         Instant loggedAt = request.loggedAt() != null ? request.loggedAt().toInstant() : Instant.now();
         requireNotFuture(loggedAt);
-        CareLog saved = repository.save(new CareLog(request.type(), loggedAt, request.note()));
-        return CareLogResponse.from(saved, List.of());
+        CareLog log = new CareLog(request.type(), loggedAt, request.note());
+        applyDetail(log, request);
+        return CareLogResponse.from(repository.save(log), List.of());
     }
 
     @Transactional
@@ -68,6 +69,7 @@ public class CareLogService {
         requireNotFuture(loggedAt);
         log.setLoggedAt(loggedAt);
         log.setNote(request.note());
+        applyDetail(log, request);
         return withMedia(repository.save(log));
     }
 
@@ -88,6 +90,75 @@ public class CareLogService {
     public CareLog require(UUID id) {
         return repository.findById(id)
                 .orElseThrow(() -> ApiException.notFound("CARE_LOG_NOT_FOUND", "Care log not found"));
+    }
+
+    /**
+     * Ends an open sleep at the current time. A dedicated endpoint rather than a plain
+     * update so the common case — tapping "woke up" — cannot accidentally rewrite the
+     * start time it was read from.
+     */
+    @Transactional
+    public CareLogResponse endSleep(UUID id) {
+        CareLog log = require(id);
+        if (log.getType() != CareType.SLEEP) {
+            throw ApiException.badRequest("CARE_LOG_NOT_SLEEP", "Only a sleep entry can be ended");
+        }
+        if (log.getEndedAt() != null) {
+            throw ApiException.conflict("SLEEP_ALREADY_ENDED", "This sleep already has an end time");
+        }
+        Instant now = Instant.now();
+        if (log.getStartedAt() != null && !now.isAfter(log.getStartedAt())) {
+            throw ApiException.badRequest("SLEEP_WINDOW_INVALID", "Sleep must end after it started");
+        }
+        log.setEndedAt(now);
+        return withMedia(repository.save(log));
+    }
+
+    /**
+     * Copies the detail fields that belong to this entry's type and rejects any sent for
+     * another type. The same rule is a CHECK constraint in V10 — this layer exists to turn
+     * it into the documented error contract rather than a 500 from the database.
+     */
+    private void applyDetail(CareLog log, CareLogDtos.CareDetail detail) {
+        switch (log.getType()) {
+            case FEEDING -> {
+                rejectForeign(detail.startedAt() != null || detail.endedAt() != null
+                        || detail.condition() != null, CareType.FEEDING);
+                log.setFeedMethod(detail.method());
+                log.setAmountMl(detail.amountMl());
+                log.setDurationMin(detail.durationMin());
+            }
+            case SLEEP -> {
+                rejectForeign(detail.method() != null || detail.amountMl() != null
+                        || detail.durationMin() != null || detail.condition() != null, CareType.SLEEP);
+                // The window drives the entry's place in the day, so the two stay in step.
+                Instant startedAt = detail.startedAt() != null
+                        ? detail.startedAt().toInstant()
+                        : log.getLoggedAt();
+                Instant endedAt = detail.endedAt() != null ? detail.endedAt().toInstant() : null;
+                requireNotFuture(startedAt);
+                if (endedAt != null && !endedAt.isAfter(startedAt)) {
+                    throw ApiException.badRequest("SLEEP_WINDOW_INVALID",
+                            "Sleep must end after it started");
+                }
+                log.setStartedAt(startedAt);
+                log.setEndedAt(endedAt);
+                log.setLoggedAt(startedAt);
+            }
+            case DIAPER -> {
+                rejectForeign(detail.method() != null || detail.amountMl() != null
+                        || detail.durationMin() != null || detail.startedAt() != null
+                        || detail.endedAt() != null, CareType.DIAPER);
+                log.setCondition(detail.condition());
+            }
+        }
+    }
+
+    private void rejectForeign(boolean foreignPresent, CareType type) {
+        if (foreignPresent) {
+            throw ApiException.badRequest("CARE_DETAIL_TYPE_MISMATCH",
+                    "Detail fields do not belong to a " + type + " entry");
+        }
     }
 
     private void requireNotFuture(Instant loggedAt) {

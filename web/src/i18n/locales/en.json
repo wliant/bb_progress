@@ -55,7 +55,12 @@
     "GESTATIONAL_AGE_NOT_SET": "Gestational age at birth has not been recorded",
     "BIRTH_MEASUREMENTS_NOT_SET": "No birth measurements recorded yet",
     "UNSUPPORTED_MEDIA_TYPE": "Only photos, videos and voice recordings are supported",
-    "MEDIA_NOT_FOUND": "That attachment no longer exists"
+    "MEDIA_NOT_FOUND": "That attachment no longer exists",
+    "CARE_DETAIL_TYPE_MISMATCH": "Those details don't belong to this kind of entry",
+    "CARE_AGGREGATE_RANGE_INVALID": "That date range isn't valid",
+    "CARE_LOG_NOT_SLEEP": "Only a sleep entry can be ended",
+    "SLEEP_ALREADY_ENDED": "This sleep already has an end time",
+    "SLEEP_WINDOW_INVALID": "Sleep must end after it started"
   },
   "profile": {
     "title": "Baby Profile",
@@ -130,10 +135,67 @@
     "time": "Time",
     "addNote": "Add note",
     "notePlaceholder": {
-      "FEEDING": "e.g. 150ml or left side 10 min",
-      "SLEEP": "e.g. nap, 1 hour",
-      "DIAPER": "e.g. wet / dirty"
-    }
+      "FEEDING": "e.g. fussy, fell asleep",
+      "SLEEP": "e.g. nap in the pram",
+      "DIAPER": "e.g. rash cream applied"
+    },
+    "method": {
+      "label": "How",
+      "BREAST": "Breast",
+      "BOTTLE": "Bottle",
+      "BOTH": "Breast + bottle"
+    },
+    "condition": {
+      "label": "Condition",
+      "CLEAN": "Clean",
+      "SLIGHTLY_DIRTY": "Slightly dirty",
+      "DIRTY": "Dirty",
+      "VERY_DIRTY": "Very dirty",
+      "UNKNOWN": "Not recorded"
+    },
+    "amountMl": "Amount (ml)",
+    "durationMin": "Time at breast (min)",
+    "startedAt": "Fell asleep",
+    "endedAt": "Woke up",
+    "sleeping": "Still asleep",
+    "endSleep": "Woke up now",
+    "duration": "Slept {{duration}}",
+    "notMeasured": "amount not recorded",
+    "tabDay": "By day",
+    "tabTrends": "Trends",
+    "trends": {
+      "title": "Trends",
+      "range": {
+        "7": "7 days",
+        "30": "30 days",
+        "90": "90 days",
+        "all": "All"
+      },
+      "intake": "Daily intake",
+      "intakeMeasured": "Measured",
+      "intakePartial": "Partial — some feeds not measured",
+      "feeds": "Feeds per day",
+      "breastMinutes": "Breast minutes per day",
+      "sleep": "Sleep per day",
+      "diapers": "Diaper changes per day",
+      "fromFeeds": "{{ml}} ml from {{measured}} of {{total}} feeds",
+      "totalIntake": "Total intake",
+      "coverage": "from {{measured}} of {{total}} feeds ({{pct}}%)",
+      "avgIntake": "Average per day",
+      "avgFeeds": "Feeds per day",
+      "avgSleep": "Sleep per day",
+      "totalChanges": "Diaper changes",
+      "perDayOver": "over {{days}} days with entries",
+      "openSleeps": "{{count}} sleep still open, not counted",
+      "coverageNote": "Breastfeeds whose volume was never measured are left out of the totals rather than counted as zero, so a partial day understates what the baby actually took.",
+      "noData": "No entries in this range",
+      "hours": "{{hours}}h",
+      "showTable": "Show the numbers",
+      "hideTable": "Hide the numbers",
+      "noneInRange": "Nothing recorded in this range"
+    },
+    "hoursShort": "{{h}}h",
+    "minutesShort": "{{m}}m"
   },
   "home": {
     "welcome": "Welcome back",

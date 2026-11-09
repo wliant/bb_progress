@@ -7,7 +7,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': 'http://localhost:8080',
+      // Default is the app's usual port; VITE_API_TARGET points dev at another backend
+      // (a second compose instance, or a throwaway stack) without editing this file.
+      '/api': process.env.VITE_API_TARGET ?? 'http://localhost:8080',
     },
   },
   test: {

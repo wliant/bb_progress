@@ -19,7 +19,7 @@ const withMedia = (...media: Media[]) => [{ ...testCareLogs[0], media }]
 describe('care log attachments', () => {
   it('offers to attach media when the entry has none', async () => {
     renderApp(<CareLogsPage />)
-    await userEvent.click(await screen.findByText(/150ml/))
+    await userEvent.click(await screen.findByText(/150 ml/))
 
     expect(screen.getByRole('button', { name: '添加' })).toBeInTheDocument()
     expect(screen.getByTestId('media-input')).toHaveAttribute('multiple')
@@ -39,7 +39,7 @@ describe('care log attachments', () => {
       }),
     )
     renderApp(<CareLogsPage />)
-    await userEvent.click(await screen.findByText(/150ml/))
+    await userEvent.click(await screen.findByText(/150 ml/))
 
     await userEvent.upload(screen.getByTestId('media-input'), [
       new File(['a'], 'a.jpg', { type: 'image/jpeg' }),
@@ -58,7 +58,7 @@ describe('care log attachments', () => {
   it('shows a voice note by its kind, since it has no thumbnail', async () => {
     server.use(http.get('/api/care-logs', () => HttpResponse.json(withMedia(voice))))
     renderApp(<CareLogsPage />)
-    await userEvent.click(await screen.findByText(/150ml/))
+    await userEvent.click(await screen.findByText(/150 ml/))
 
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByText('录音')).toBeInTheDocument()
@@ -75,7 +75,7 @@ describe('care log attachments', () => {
       }),
     )
     renderApp(<CareLogsPage />)
-    await userEvent.click(await screen.findByText(/150ml/))
+    await userEvent.click(await screen.findByText(/150 ml/))
 
     const removeButtons = within(screen.getByRole('dialog')).getAllByRole('button', { name: '移除' })
     expect(removeButtons).toHaveLength(2)
@@ -96,7 +96,7 @@ describe('care log attachments', () => {
   it('reports an unsupported type instead of failing silently', async () => {
     server.use(http.post('/api/care-logs/:id/media', () => apiError(400, 'UNSUPPORTED_MEDIA_TYPE')))
     renderApp(<CareLogsPage />)
-    await userEvent.click(await screen.findByText(/150ml/))
+    await userEvent.click(await screen.findByText(/150 ml/))
 
     // The input carries an accept filter; bypass it so the server's own refusal is exercised.
     await userEvent.upload(screen.getByTestId('media-input'),
@@ -108,7 +108,7 @@ describe('care log attachments', () => {
   it('reports an oversized upload', async () => {
     server.use(http.post('/api/care-logs/:id/media', () => apiError(413, 'FILE_TOO_LARGE')))
     renderApp(<CareLogsPage />)
-    await userEvent.click(await screen.findByText(/150ml/))
+    await userEvent.click(await screen.findByText(/150 ml/))
 
     await userEvent.upload(screen.getByTestId('media-input'),
       new File(['x'], 'huge.mp4', { type: 'video/mp4' }))

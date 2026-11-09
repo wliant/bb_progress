@@ -129,7 +129,7 @@ test('milestone media can be added in the same dialog as marking it achieved', a
 test('removing an attachment removes it from the gallery', async ({ page }) => {
   await page.goto('/care')
   await page.getByRole('button', { name: /睡觉/ }).click()
-  await page.locator('li', { hasText: '睡觉' }).first().click()
+  await page.locator('li', { hasText: '仍在睡' }).first().click()
   await page.getByRole('dialog').getByTestId('media-input').setInputFiles({
     name: 'x.png',
     mimeType: 'image/png',
@@ -141,7 +141,7 @@ test('removing an attachment removes it from the gallery', async ({ page }) => {
   await expect(page.getByText('共 1 项')).toBeVisible()
 
   await page.goto('/care')
-  await page.locator('li', { hasText: '睡觉' }).first().click()
+  await page.locator('li', { hasText: '仍在睡' }).first().click()
   await page.getByRole('dialog').getByRole('button', { name: '移除' }).first().click()
   await expect(page.getByRole('dialog').locator('img')).toHaveCount(0)
 

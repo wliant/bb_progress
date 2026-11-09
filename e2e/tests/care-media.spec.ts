@@ -45,7 +45,7 @@ test('a phone-sized photo uploads and is stored under 1MB', async ({ page, reque
 
 test('a photo can be removed from the entry', async ({ page, request }) => {
   await page.getByRole('button', { name: /睡觉/ }).click()
-  await page.locator('li', { hasText: '睡觉' }).first().click()
+  await page.locator('li', { hasText: '仍在睡' }).first().click()
 
   const dialog = page.getByRole('dialog')
   await dialog.getByTestId('media-input').setInputFiles({
@@ -116,7 +116,7 @@ test('a voice note recorded in the app is uploaded, stored and playable', async 
 
   await page.goto('/care')
   await page.getByRole('button', { name: /睡觉/ }).click()
-  await page.locator('li', { hasText: '睡觉' }).first().click()
+  await page.locator('li', { hasText: '仍在睡' }).first().click()
 
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('button', { name: /录音/ }).click()

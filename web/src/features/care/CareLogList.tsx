@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import type { CareLog, CareType, Media } from '../../api/types'
 import { KIND_ICON } from '../media/MediaPicker'
 import { timeSgt } from '../../lib/dates'
+import { careSummary, noteAddsDetail } from '../../lib/careFormat'
 
 export const CARE_ICONS: Record<CareType, string> = {
   FEEDING: '🍼',
@@ -53,9 +54,10 @@ export function CareLogList({ logs, onSelect }: Props) {
           >
             <span aria-hidden className="text-xl">{CARE_ICONS[log.type]}</span>
             <span className="w-14 shrink-0 font-mono text-slate-700">{timeSgt(log.loggedAt)}</span>
+            {/* The structured detail is the primary text now; the note is secondary prose. */}
             <span className="flex-1 text-slate-600">
-              {t(`care.${log.type}`)}
-              {log.note && <span className="text-slate-400"> · {log.note}</span>}
+              {careSummary(t, log) ?? t(`care.${log.type}`)}
+              {noteAddsDetail(log.note) && <span className="text-slate-400"> · {log.note}</span>}
             </span>
             {log.media.length > 0 && <MediaBadge media={log.media} />}
             <span aria-hidden className="text-slate-300">›</span>

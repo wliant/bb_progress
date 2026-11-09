@@ -32,15 +32,16 @@ test('a quick log can be enriched from the home page', async ({ page }) => {
 
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
-  await dialog.getByLabel(/备注/).fill('150ml')
+  await dialog.getByRole('button', { name: '瓶喂', exact: true }).click()
+  await dialog.getByLabel(/奶量/).fill('150')
   await dialog.getByRole('button', { name: '保存' }).click()
 
   await expect(dialog).toBeHidden()
-  await expect(page.getByText(/150ml/)).toBeVisible()
+  await expect(page.getByText(/150 ml/)).toBeVisible()
 
-  // The same entry shows the note on the care page.
+  // The same entry shows the amount on the care page.
   await page.goto('/care')
-  await expect(page.getByText(/150ml/)).toBeVisible()
+  await expect(page.getByText(/150 ml/)).toBeVisible()
 })
 
 test('an entry can be deleted from its dialog', async ({ page }) => {
@@ -67,7 +68,8 @@ test('quick log backfills a past day at the chosen time', async ({ page, request
   await page.getByRole('button', { name: '睡觉', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('已记录')
 
-  const entry = page.locator('li', { hasText: '睡觉' }).first()
+  // An open nap reads as "still asleep" rather than as a zero-length sleep.
+  const entry = page.locator('li', { hasText: '仍在睡' }).first()
   await expect(entry.getByText('07:15')).toBeVisible()
   await expect(page.getByText(`${yesterday}: 🍼 0 · 😴 1 · 🧷 0`)).toBeVisible()
 

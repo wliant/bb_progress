@@ -835,6 +835,17 @@ class ApiIntegrationTest {
         assertThat(countStoredPhotos("media")).isZero();
     }
 
+    /**
+     * Every care-log write enforces the profile precondition, and the reset tests above
+     * deliberately leave none behind, so the care-detail tests put one back first.
+     */
+    private void ensureProfile() throws Exception {
+        mockMvc.perform(put("/api/baby")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\u5c0f\u5b9d\",\"dateOfBirth\":\"2026-01-15\",\"gender\":\"FEMALE\"}"))
+                .andExpect(status().isOk());
+    }
+
     private static byte[] largeNoisyPng(int width, int height) throws Exception {
         java.awt.image.BufferedImage image =
                 new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);
@@ -863,5 +874,252 @@ class ApiIntegrationTest {
                         .prefix(prefix + "/")
                         .build())
                 .contents().size();
+    }
+    @Test
+    @Order(26)
+    void feedingRecordsAmountAndDurationTogether() throws Exception {
+        ensureProfile();
+        // The point of spec 08: a breastfeed carries minutes AND a volume, and a volume
+        // that was never measured stays null rather than becoming a zero.
+        MvcResult breast = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"loggedAt\":\"2026-06-01T08:00:00+08:00\","
+                                + "\"method\":\"BREAST\",\"durationMin\":15,\"amountMl\":60}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.method").value("BREAST"))
+                .andExpect(jsonPath("$.durationMin").value(15))
+                .andExpect(jsonPath("$.amountMl").value(60))
+                .andReturn();
+        String id = com.jayway.jsonpath.JsonPath.read(breast.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"loggedAt\":\"2026-06-01T11:00:00+08:00\","
+                                + "\"method\":\"BREAST\",\"durationMin\":12}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.durationMin").value(12))
+                .andExpect(jsonPath("$.amountMl").doesNotExist());
+
+        // An edit keeps both quantities round-tripping.
+        mockMvc.perform(put("/api/care-logs/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loggedAt\":\"2026-06-01T08:00:00+08:00\",\"method\":\"BOTH\","
+                                + "\"durationMin\":10,\"amountMl\":40}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.method").value("BOTH"))
+                .andExpect(jsonPath("$.durationMin").value(10))
+                .andExpect(jsonPath("$.amountMl").value(40));
+    }
+
+    @Test
+    @Order(27)
+    void detailFieldsAreRejectedForTheWrongCareType() throws Exception {
+        ensureProfile();
+        // Mirrors the CHECK constraints in V10, so neither layer is the only thing holding
+        // the rule — and the failure is the documented error contract, not a 500.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SLEEP\",\"amountMl\":100}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CARE_DETAIL_TYPE_MISMATCH"));
+
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"condition\":\"DIRTY\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CARE_DETAIL_TYPE_MISMATCH"));
+
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"DIAPER\",\"startedAt\":\"2026-06-01T08:00:00+08:00\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CARE_DETAIL_TYPE_MISMATCH"));
+
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"method\":\"BOTTLE\",\"amountMl\":9999}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    @Order(28)
+    void sleepTracksAWindowAndDerivesItsDuration() throws Exception {
+        ensureProfile();
+        MvcResult open = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SLEEP\",\"loggedAt\":\"2026-06-02T13:00:00+08:00\"}"))
+                .andExpect(status().isCreated())
+                // The start defaults to the entry's time, and an open nap has no duration.
+                .andExpect(jsonPath("$.startedAt").value("2026-06-02T13:00:00+08:00"))
+                .andExpect(jsonPath("$.endedAt").doesNotExist())
+                .andExpect(jsonPath("$.sleepMinutes").doesNotExist())
+                .andReturn();
+        String id = com.jayway.jsonpath.JsonPath.read(open.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(put("/api/care-logs/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loggedAt\":\"2026-06-02T13:00:00+08:00\","
+                                + "\"startedAt\":\"2026-06-02T13:00:00+08:00\","
+                                + "\"endedAt\":\"2026-06-02T14:35:00+08:00\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sleepMinutes").value(95));
+
+        // A backwards window is refused rather than stored.
+        mockMvc.perform(put("/api/care-logs/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loggedAt\":\"2026-06-02T13:00:00+08:00\","
+                                + "\"startedAt\":\"2026-06-02T13:00:00+08:00\","
+                                + "\"endedAt\":\"2026-06-02T12:00:00+08:00\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("SLEEP_WINDOW_INVALID"));
+
+        // Ending an already-ended sleep is a conflict, not a silent overwrite.
+        mockMvc.perform(post("/api/care-logs/" + id + "/end-sleep"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SLEEP_ALREADY_ENDED"));
+    }
+
+    @Test
+    @Order(29)
+    void endSleepClosesAnOpenNapAtTheCurrentTime() throws Exception {
+        ensureProfile();
+        MvcResult open = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SLEEP\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String id = com.jayway.jsonpath.JsonPath.read(open.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(post("/api/care-logs/" + id + "/end-sleep"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.endedAt").exists())
+                .andExpect(jsonPath("$.sleepMinutes").value(0));
+
+        // Only a sleep can be ended.
+        MvcResult feed = mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"method\":\"BOTTLE\",\"amountMl\":80}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String feedId = com.jayway.jsonpath.JsonPath.read(feed.getResponse().getContentAsString(), "$.id");
+        mockMvc.perform(post("/api/care-logs/" + feedId + "/end-sleep"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CARE_LOG_NOT_SLEEP"));
+    }
+
+    @Test
+    @Order(30)
+    void diaperRecordsItsCondition() throws Exception {
+        ensureProfile();
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"DIAPER\",\"condition\":\"VERY_DIRTY\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.condition").value("VERY_DIRTY"));
+
+        // A quick-logged change with nothing recorded is allowed.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"DIAPER\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.condition").doesNotExist());
+    }
+
+    @Test
+    @Order(31)
+    void aggregatesReportCoverageRatherThanABareTotal() throws Exception {
+        ensureProfile();
+        jdbcTemplate.update("DELETE FROM care_log");
+
+        // One measured bottle and one unmeasured breastfeed on the same SGT day: the day's
+        // volume is real but incomplete, which is the case the whole view exists to show.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"loggedAt\":\"2026-07-01T09:00:00+08:00\","
+                                + "\"method\":\"BOTTLE\",\"amountMl\":100}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"loggedAt\":\"2026-07-01T13:00:00+08:00\","
+                                + "\"method\":\"BREAST\",\"durationMin\":18}"))
+                .andExpect(status().isCreated());
+        // 23:50 SGT stays on the 1st regardless of the server's own timezone.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"DIAPER\",\"loggedAt\":\"2026-07-01T23:50:00+08:00\","
+                                + "\"condition\":\"SLIGHTLY_DIRTY\"}"))
+                .andExpect(status().isCreated());
+        // A fully measured second day, for contrast.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"FEEDING\",\"loggedAt\":\"2026-07-03T09:00:00+08:00\","
+                                + "\"method\":\"BOTTLE\",\"amountMl\":120}"))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/care-aggregates?from=2026-07-01&to=2026-07-03"))
+                .andExpect(status().isOk())
+                // Every day in the window is present, so a gap is a real gap.
+                .andExpect(jsonPath("$.days.length()").value(3))
+                .andExpect(jsonPath("$.days[0].date").value("2026-07-01"))
+                .andExpect(jsonPath("$.days[0].amountMl").value(100))
+                .andExpect(jsonPath("$.days[0].feedsTotal").value(2))
+                .andExpect(jsonPath("$.days[0].feedsWithAmount").value(1))
+                .andExpect(jsonPath("$.days[0].breastMinutes").value(18))
+                .andExpect(jsonPath("$.days[0].partial").value(true))
+                .andExpect(jsonPath("$.days[0].diaperTotal").value(1))
+                .andExpect(jsonPath("$.days[0].diaperSlightlyDirty").value(1))
+                // An empty day is zeroed, and is not "partial" — nothing is missing.
+                .andExpect(jsonPath("$.days[1].date").value("2026-07-02"))
+                .andExpect(jsonPath("$.days[1].feedsTotal").value(0))
+                .andExpect(jsonPath("$.days[1].partial").value(false))
+                .andExpect(jsonPath("$.days[2].amountMl").value(120))
+                .andExpect(jsonPath("$.days[2].partial").value(false))
+                // Averages divide by days holding entries, not the width of the window.
+                .andExpect(jsonPath("$.summary.amountMl").value(220))
+                .andExpect(jsonPath("$.summary.feedsTotal").value(3))
+                .andExpect(jsonPath("$.summary.feedsWithAmount").value(2))
+                .andExpect(jsonPath("$.summary.daysWithData").value(2))
+                .andExpect(jsonPath("$.summary.coveragePct").value(66.7))
+                .andExpect(jsonPath("$.summary.avgAmountMlPerDay").value(110.0));
+    }
+
+    @Test
+    @Order(32)
+    void aggregateSumsSleepByTheDayItBeganAndSkipsOpenNaps() throws Exception {
+        ensureProfile();
+        jdbcTemplate.update("DELETE FROM care_log");
+
+        // A nap crossing midnight counts on the day it started.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SLEEP\",\"startedAt\":\"2026-07-05T23:30:00+08:00\","
+                                + "\"endedAt\":\"2026-07-06T01:00:00+08:00\","
+                                + "\"loggedAt\":\"2026-07-05T23:30:00+08:00\"}"))
+                .andExpect(status().isCreated());
+        // An open nap contributes no minutes but is still counted as a session.
+        mockMvc.perform(post("/api/care-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SLEEP\",\"loggedAt\":\"2026-07-05T14:00:00+08:00\"}"))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/care-aggregates?from=2026-07-05&to=2026-07-06"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.days[0].sleepMinutes").value(90))
+                .andExpect(jsonPath("$.days[0].sleepSessions").value(2))
+                .andExpect(jsonPath("$.days[0].openSleeps").value(1))
+                .andExpect(jsonPath("$.days[1].sleepMinutes").value(0));
+    }
+
+    @Test
+    @Order(33)
+    void aggregateRejectsAnImpossibleRange() throws Exception {
+        mockMvc.perform(get("/api/care-aggregates?from=2026-11-01&to=2026-10-01"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CARE_AGGREGATE_RANGE_INVALID"));
+
+        mockMvc.perform(get("/api/care-aggregates?from=2020-01-01&to=2026-11-10"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CARE_AGGREGATE_RANGE_INVALID"));
     }
 }

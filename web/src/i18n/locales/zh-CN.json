@@ -55,7 +55,12 @@
     "GESTATIONAL_AGE_NOT_SET": "还没有填写出生孕周",
     "BIRTH_MEASUREMENTS_NOT_SET": "还没有填写出生时的测量值",
     "UNSUPPORTED_MEDIA_TYPE": "只支持照片、视频和录音",
-    "MEDIA_NOT_FOUND": "找不到这个附件"
+    "MEDIA_NOT_FOUND": "找不到这个附件",
+    "CARE_DETAIL_TYPE_MISMATCH": "这些详情不属于此类记录",
+    "CARE_AGGREGATE_RANGE_INVALID": "日期范围无效",
+    "CARE_LOG_NOT_SLEEP": "只有睡眠记录可以结束",
+    "SLEEP_ALREADY_ENDED": "该睡眠已有结束时间",
+    "SLEEP_WINDOW_INVALID": "结束时间必须晚于入睡时间"
   },
   "profile": {
     "title": "宝宝档案",
@@ -130,10 +135,67 @@
     "time": "时间",
     "addNote": "添加备注",
     "notePlaceholder": {
-      "FEEDING": "例如：150ml 或 左侧 10 分钟",
-      "SLEEP": "例如：小睡 1 小时",
-      "DIAPER": "例如：湿 / 脏"
-    }
+      "FEEDING": "例如：闹、吃着睡了",
+      "SLEEP": "例如：在推车里小睡",
+      "DIAPER": "例如：抹了护臀霜"
+    },
+    "method": {
+      "label": "方式",
+      "BREAST": "母乳亲喂",
+      "BOTTLE": "瓶喂",
+      "BOTH": "亲喂 + 瓶喂"
+    },
+    "condition": {
+      "label": "情况",
+      "CLEAN": "干净",
+      "SLIGHTLY_DIRTY": "稍脏",
+      "DIRTY": "脏",
+      "VERY_DIRTY": "很脏",
+      "UNKNOWN": "未记录"
+    },
+    "amountMl": "奶量（毫升）",
+    "durationMin": "亲喂时长（分钟）",
+    "startedAt": "入睡",
+    "endedAt": "醒来",
+    "sleeping": "仍在睡",
+    "endSleep": "现在醒了",
+    "duration": "睡了 {{duration}}",
+    "notMeasured": "未记录奶量",
+    "tabDay": "按天",
+    "tabTrends": "趋势",
+    "trends": {
+      "title": "趋势",
+      "range": {
+        "7": "7 天",
+        "30": "30 天",
+        "90": "90 天",
+        "all": "全部"
+      },
+      "intake": "每日奶量",
+      "intakeMeasured": "已记录",
+      "intakePartial": "部分 — 有喂养未记录奶量",
+      "feeds": "每日喂养次数",
+      "breastMinutes": "每日亲喂分钟",
+      "sleep": "每日睡眠",
+      "diapers": "每日换尿布次数",
+      "fromFeeds": "{{ml}} 毫升，来自 {{total}} 次喂养中的 {{measured}} 次",
+      "totalIntake": "总奶量",
+      "coverage": "来自 {{total}} 次喂养中的 {{measured}} 次（{{pct}}%）",
+      "avgIntake": "日均奶量",
+      "avgFeeds": "日均喂养次数",
+      "avgSleep": "日均睡眠",
+      "totalChanges": "换尿布次数",
+      "perDayOver": "基于有记录的 {{days}} 天",
+      "openSleeps": "{{count}} 次睡眠尚未结束，未计入",
+      "coverageNote": "未记录奶量的亲喂不计入总量，也不会当作零，因此“部分”的日子实际喂养量会高于显示值。",
+      "noData": "此区间没有记录",
+      "hours": "{{hours}} 小时",
+      "showTable": "显示数据表",
+      "hideTable": "隐藏数据表",
+      "noneInRange": "此区间没有记录"
+    },
+    "hoursShort": "{{h}}小时",
+    "minutesShort": "{{m}}分"
   },
   "home": {
     "welcome": "欢迎回来",

@@ -4,11 +4,13 @@ import {
   useAddCareLogMedia,
   useDeleteCareLog,
   useDeleteMedia,
+  useEndSleep,
   useUpdateCareLog,
 } from '../../api/hooks'
 import type { CareLog } from '../../api/types'
 import { MediaPicker } from '../media/MediaPicker'
 import { CARE_ICONS } from './CareLogList'
+import { CareDetailFields, detailDraftFrom, detailPayload } from './CareDetailFields'
 
 /** The dialog reads its entry from the list so an upload shows up without reopening. */
 export function CareLogEditDialog({ log, onClose }: { log: CareLog; onClose: () => void }) {
@@ -17,14 +19,21 @@ export function CareLogEditDialog({ log, onClose }: { log: CareLog; onClose: () 
   const deleteLog = useDeleteCareLog()
   const addMedia = useAddCareLogMedia()
   const removeMedia = useDeleteMedia()
+  const endSleep = useEndSleep()
 
   // The API serializes loggedAt in SGT (+08:00); take the local part for the input.
   const [time, setTime] = useState(log.loggedAt.slice(0, 16))
   const [note, setNote] = useState(log.note ?? '')
+  const [detail, setDetail] = useState(() => detailDraftFrom(log))
 
   function save() {
     updateLog.mutate(
-      { id: log.id, loggedAt: `${time}:00+08:00`, note: note || undefined },
+      {
+        id: log.id,
+        loggedAt: `${time}:00+08:00`,
+        note: note || undefined,
+        ...detailPayload(log.type, detail),
+      },
       { onSuccess: onClose },
     )
   }
@@ -33,7 +42,9 @@ export function CareLogEditDialog({ log, onClose }: { log: CareLog; onClose: () 
     deleteLog.mutate(log.id, { onSuccess: onClose })
   }
 
-  const busy = updateLog.isPending || deleteLog.isPending
+  const busy = updateLog.isPending || deleteLog.isPending || endSleep.isPending
+  // An open nap gets a one-tap close, so the common case needs no time arithmetic.
+  const openSleep = log.type === 'SLEEP' && log.endedAt === null
 
   return (
     <div
@@ -50,16 +61,32 @@ export function CareLogEditDialog({ log, onClose }: { log: CareLog; onClose: () 
           {CARE_ICONS[log.type]} {t(`care.${log.type}`)}
         </h3>
 
-        <label className="mb-3 flex flex-col gap-1 text-sm font-medium text-slate-700">
-          {t('care.time')}
-          <input
-            type="datetime-local"
-            required
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2"
-          />
-        </label>
+        {/* A sleep's place in the day comes from its start, so it has no separate time field. */}
+        {log.type !== 'SLEEP' && (
+          <label className="mb-3 flex flex-col gap-1 text-sm font-medium text-slate-700">
+            {t('care.time')}
+            <input
+              type="datetime-local"
+              required
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="rounded-lg border border-slate-300 px-3 py-2"
+            />
+          </label>
+        )}
+
+        <CareDetailFields type={log.type} draft={detail} onChange={setDetail} />
+
+        {openSleep && (
+          <button
+            type="button"
+            onClick={() => endSleep.mutate(log.id, { onSuccess: onClose })}
+            disabled={busy}
+            className="mb-4 w-full rounded-xl border border-indigo-200 bg-indigo-50 py-2.5 font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+          >
+            😴 {t('care.endSleep')}
+          </button>
+        )}
 
         <label className="mb-4 flex flex-col gap-1 text-sm font-medium text-slate-700">
           {t('common.note')}{t('common.optional')}
@@ -86,7 +113,7 @@ export function CareLogEditDialog({ log, onClose }: { log: CareLog; onClose: () 
           <button
             type="button"
             onClick={save}
-            disabled={busy || time === ''}
+            disabled={busy || (log.type !== 'SLEEP' && time === '')}
             className="flex-1 rounded-xl bg-rose-500 py-2.5 font-semibold text-white shadow hover:bg-rose-600 disabled:opacity-50"
           >
             {t('common.save')}
