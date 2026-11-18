@@ -7,6 +7,7 @@ import { MilestonesPage } from './pages/MilestonesPage'
 import { CareLogsPage } from './pages/CareLogsPage'
 import { CareTrendsPage } from './pages/CareTrendsPage'
 import { MediaPage } from './pages/MediaPage'
+import { HeadShapePage } from './pages/HeadShapePage'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/milestones" element={<MilestonesPage />} />
         <Route path="/care" element={<CareLogsPage />} />
         <Route path="/care/trends" element={<CareTrendsPage />} />
+        <Route path="/head-shape" element={<HeadShapePage />} />
         <Route path="/media" element={<MediaPage />} />
       </Route>
     </Routes>

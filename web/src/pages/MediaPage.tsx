@@ -111,6 +111,10 @@ function useCaption() {
     if (item.source === 'MILESTONE') {
       return (i18n.language === 'zh-CN' ? item.titleZh : item.titleEn) ?? ''
     }
+    if (item.source === 'HEAD_SHAPE') {
+      const label = t('media.headShapePhoto')
+      return withNote && item.note ? `${label} · ${item.note}` : label
+    }
     const type = item.careType ? t(`care.${item.careType}`) : ''
     return withNote && item.note ? `${type} · ${item.note}` : type
   }
@@ -125,7 +129,9 @@ function MediaViewer({ item, onClose }: { item: GalleryItem; onClose: () => void
       ? '/profile'
       : item.source === 'MILESTONE'
         ? '/milestones'
-        : `/care?date=${item.takenOn}`
+        : item.source === 'HEAD_SHAPE'
+          ? '/head-shape'
+          : `/care?date=${item.takenOn}`
 
   return (
     <div

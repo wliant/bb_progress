@@ -10,7 +10,8 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/** An attachment on a care-log entry or a milestone achievement — exactly one of the two. */
+/** An attachment on a care-log entry, a milestone achievement or a head shape entry —
+ *  exactly one of the three. */
 @Entity
 @Table(name = "media")
 public class Media {
@@ -23,6 +24,9 @@ public class Media {
 
     @Column(name = "milestone_id")
     private String milestoneId;
+
+    @Column(name = "head_shape_entry_id")
+    private UUID headShapeEntryId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -43,11 +47,12 @@ public class Media {
     protected Media() {
     }
 
-    private Media(UUID careLogId, String milestoneId, MediaKind kind, String objectKey,
-            String contentType, int sortOrder) {
+    private Media(UUID careLogId, String milestoneId, UUID headShapeEntryId, MediaKind kind,
+            String objectKey, String contentType, int sortOrder) {
         this.id = UUID.randomUUID();
         this.careLogId = careLogId;
         this.milestoneId = milestoneId;
+        this.headShapeEntryId = headShapeEntryId;
         this.kind = kind;
         this.objectKey = objectKey;
         this.contentType = contentType;
@@ -56,12 +61,17 @@ public class Media {
 
     public static Media forCareLog(UUID careLogId, MediaKind kind, String objectKey,
             String contentType, int sortOrder) {
-        return new Media(careLogId, null, kind, objectKey, contentType, sortOrder);
+        return new Media(careLogId, null, null, kind, objectKey, contentType, sortOrder);
     }
 
     public static Media forMilestone(String milestoneId, MediaKind kind, String objectKey,
             String contentType, int sortOrder) {
-        return new Media(null, milestoneId, kind, objectKey, contentType, sortOrder);
+        return new Media(null, milestoneId, null, kind, objectKey, contentType, sortOrder);
+    }
+
+    public static Media forHeadShapeEntry(UUID headShapeEntryId, MediaKind kind, String objectKey,
+            String contentType, int sortOrder) {
+        return new Media(null, null, headShapeEntryId, kind, objectKey, contentType, sortOrder);
     }
 
     @PrePersist
@@ -79,6 +89,10 @@ public class Media {
 
     public String getMilestoneId() {
         return milestoneId;
+    }
+
+    public UUID getHeadShapeEntryId() {
+        return headShapeEntryId;
     }
 
     public MediaKind getKind() {

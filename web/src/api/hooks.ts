@@ -17,6 +17,8 @@ import type {
   Media,
   CareLogDetailInput,
   CareAggregates,
+  HeadShapeEntry,
+  HeadShapeEntryInput,
 } from './types'
 
 export function useBaby() {
@@ -173,11 +175,55 @@ export function useDeleteMedia() {
   })
 }
 
-/** Attachments show up in three places, so every change refreshes all of them. */
+/** Attachments show up in four places, so every change refreshes all of them. */
 function invalidateMedia(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ['care-logs'] })
   queryClient.invalidateQueries({ queryKey: ['milestones'] })
+  queryClient.invalidateQueries({ queryKey: ['head-shape'] })
   queryClient.invalidateQueries({ queryKey: ['media'] })
+}
+
+export function useHeadShapeEntries() {
+  return useQuery<HeadShapeEntry[]>({
+    queryKey: ['head-shape'],
+    queryFn: () => apiGet('/api/head-shape'),
+  })
+}
+
+/** Creates the day or updates the one already there — the caller need not know which. */
+export function useSaveHeadShapeEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (entry: HeadShapeEntryInput) =>
+      apiSend<HeadShapeEntry>('POST', '/api/head-shape', entry),
+    onSuccess: () => invalidateMedia(queryClient),
+  })
+}
+
+export function useUpdateHeadShapeEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...entry }: HeadShapeEntryInput & { id: string }) =>
+      apiSend<HeadShapeEntry>('PUT', `/api/head-shape/${id}`, entry),
+    onSuccess: () => invalidateMedia(queryClient),
+  })
+}
+
+export function useDeleteHeadShapeEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => apiSend('DELETE', `/api/head-shape/${id}`),
+    onSuccess: () => invalidateMedia(queryClient),
+  })
+}
+
+export function useAddHeadShapeMedia() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, files }: { id: string; files: File[] }) =>
+      apiUploadMany<Media[]>(`/api/head-shape/${id}/media`, files),
+    onSuccess: () => invalidateMedia(queryClient),
+  })
 }
 
 export function useCareLogs(date: string) {

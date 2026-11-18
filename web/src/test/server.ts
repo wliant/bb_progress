@@ -1,6 +1,13 @@
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
-import type { Baby, CareLog, GrowthRecord, GrowthStandards, MilestoneAgeGroup } from '../api/types'
+import type {
+  Baby,
+  CareLog,
+  GrowthRecord,
+  GrowthStandards,
+  HeadShapeEntry,
+  MilestoneAgeGroup,
+} from '../api/types'
 
 export const testBaby: Baby = {
   name: '小测试',
@@ -240,6 +247,44 @@ export const testMedia = [
   },
 ]
 
+export const testHeadShapeEntries: HeadShapeEntry[] = [
+  {
+    id: 'h1',
+    recordedOn: '2026-06-02',
+    note: '这一周一直朝右边睡',
+    media: [
+      {
+        id: 'hm1',
+        kind: 'PHOTO',
+        contentType: 'image/jpeg',
+        url: '/api/media/hm1/content',
+        thumbnailUrl: '/api/media/hm1/content?size=thumb',
+      },
+      {
+        id: 'hm2',
+        kind: 'PHOTO',
+        contentType: 'image/jpeg',
+        url: '/api/media/hm2/content',
+        thumbnailUrl: '/api/media/hm2/content?size=thumb',
+      },
+    ],
+  },
+  {
+    id: 'h2',
+    recordedOn: '2026-05-26',
+    note: null,
+    media: [
+      {
+        id: 'hm3',
+        kind: 'PHOTO',
+        contentType: 'image/jpeg',
+        url: '/api/media/hm3/content',
+        thumbnailUrl: '/api/media/hm3/content?size=thumb',
+      },
+    ],
+  },
+]
+
 export const handlers = [
   http.get('/api/baby', () => HttpResponse.json(testBaby)),
   http.get('/api/growth-records', () => HttpResponse.json(testGrowthRecords)),
@@ -249,6 +294,7 @@ export const handlers = [
   http.get('/api/care-logs', () => HttpResponse.json(testCareLogs)),
   http.get('/api/media', () => HttpResponse.json(testMedia)),
   http.get('/api/care-aggregates', () => HttpResponse.json(testCareAggregates)),
+  http.get('/api/head-shape', () => HttpResponse.json(testHeadShapeEntries)),
 ]
 
 export const server = setupServer(...handlers)

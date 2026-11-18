@@ -6,6 +6,7 @@ import com.bb.progress.media.Media;
 import com.bb.progress.media.MediaRepository;
 import com.bb.progress.common.ApiException;
 import com.bb.progress.growth.GrowthRecord;
+import com.bb.progress.headshape.HeadShapeEntryRepository;
 import com.bb.progress.growth.GrowthRecordRepository;
 import com.bb.progress.milestone.MilestoneAchievement;
 import com.bb.progress.milestone.MilestoneAchievementRepository;
@@ -24,16 +25,19 @@ public class BabyService {
     private final MilestoneAchievementRepository achievements;
     private final CareLogRepository careLogs;
     private final MediaRepository mediaRepository;
+    private final HeadShapeEntryRepository headShapeEntries;
 
     public BabyService(BabyRepository repository, PhotoStorageService photoStorage,
             GrowthRecordRepository growthRecords, MilestoneAchievementRepository achievements,
-            CareLogRepository careLogs, MediaRepository mediaRepository) {
+            CareLogRepository careLogs, MediaRepository mediaRepository,
+            HeadShapeEntryRepository headShapeEntries) {
         this.repository = repository;
         this.photoStorage = photoStorage;
         this.growthRecords = growthRecords;
         this.achievements = achievements;
         this.careLogs = careLogs;
         this.mediaRepository = mediaRepository;
+        this.headShapeEntries = headShapeEntries;
     }
 
     @Transactional(readOnly = true)
@@ -149,6 +153,7 @@ public class BabyService {
         mediaRepository.findAll().stream().map(Media::getObjectKey).forEach(photoStorage::deleteIfExists);
         mediaRepository.deleteAll();
         careLogs.deleteAll();
+        headShapeEntries.deleteAll();
         growthRecords.deleteAll();
         achievements.deleteAll();
         repository.deleteAll();

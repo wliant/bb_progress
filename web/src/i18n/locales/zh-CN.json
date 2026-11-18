@@ -8,6 +8,7 @@
     "growth": "生长曲线",
     "milestones": "里程碑",
     "care": "日常护理",
+    "headShape": "头型",
     "media": "媒体"
   },
   "common": {
@@ -60,7 +61,10 @@
     "CARE_AGGREGATE_RANGE_INVALID": "日期范围无效",
     "CARE_LOG_NOT_SLEEP": "只有睡眠记录可以结束",
     "SLEEP_ALREADY_ENDED": "该睡眠已有结束时间",
-    "SLEEP_WINDOW_INVALID": "结束时间必须晚于入睡时间"
+    "SLEEP_WINDOW_INVALID": "结束时间必须晚于入睡时间",
+    "HEAD_SHAPE_ENTRY_NOT_FOUND": "这一天的头型记录已不存在",
+    "RECORDED_ON_IN_FUTURE": "日期不能晚于今天",
+    "HEAD_SHAPE_PHOTOS_ONLY": "头型记录只支持照片"
   },
   "profile": {
     "title": "宝宝档案",
@@ -267,6 +271,21 @@
     "recording": "录音中",
     "stopRecording": "停止",
     "recordUnavailable": "当前环境无法录音（需要 HTTPS 或 localhost）",
-    "microphoneDenied": "无法使用麦克风，请检查浏览器权限"
+    "microphoneDenied": "无法使用麦克风，请检查浏览器权限",
+    "photoHint": "可一次选择多张。仅支持照片，每张会压缩到 1MB 以内。",
+    "headShapePhoto": "头型"
+  },
+  "headShape": {
+    "title": "头型记录",
+    "subtitle": "每天拍同一张照片——偏头和扁头并排对比才看得出来，靠记忆看不出来。",
+    "date": "日期",
+    "addPhotos": "添加照片",
+    "empty": "还没有头型照片",
+    "emptyHint": "选一个日期，添加宝宝头部的照片。每次用同样的角度拍，才方便对比。",
+    "noPhotos": "这一天还没有照片",
+    "photoCount": "{{count}} 张照片",
+    "photoAlt": "{{date}} 的头型",
+    "notePlaceholder": "例如：这一周一直朝右边睡",
+    "editDay": "编辑 {{date}}"
   }
 }

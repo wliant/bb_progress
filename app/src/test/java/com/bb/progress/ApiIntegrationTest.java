@@ -1286,4 +1286,142 @@ class ApiIntegrationTest {
                 .andExpect(jsonPath("$.days[0].reference.intakeMl").doesNotExist())
                 .andExpect(jsonPath("$.days[0].reference.sleepMinutes.low").value(840));
     }
+
+    @Test
+    @Order(39)
+    void headShapeKeepsOneEntryPerDayWithManyPhotos() throws Exception {
+        clearHeadShape();
+
+        MvcResult created = mockMvc.perform(post("/api/head-shape")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recordedOn\":\"2026-05-01\",\"note\":\"sleeps on the right\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.note").value("sleeps on the right"))
+                .andReturn();
+        String id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(multipart("/api/head-shape/" + id + "/media")
+                        .file(new MockMultipartFile("files", "top.png", "image/png", tinyPng()))
+                        .file(new MockMultipartFile("files", "back.jpg", "image/jpeg", tinyJpeg())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(2)))
+                .andExpect(jsonPath("$[0].kind").value("PHOTO"))
+                .andExpect(jsonPath("$[1].thumbnailUrl",
+                        org.hamcrest.Matchers.containsString("size=thumb")));
+
+        // Posting the same day again updates that entry rather than creating a second one.
+        mockMvc.perform(post("/api/head-shape")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recordedOn\":\"2026-05-01\",\"note\":\"week two\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.media", org.hamcrest.Matchers.hasSize(2)));
+
+        mockMvc.perform(get("/api/head-shape"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[0].recordedOn").value("2026-05-01"))
+                .andExpect(jsonPath("$[0].note").value("week two"));
+    }
+
+    @Test
+    @Order(40)
+    void headShapeTakesPhotosOnlyAndStoresNothingWhenItRefuses() throws Exception {
+        String id = headShapeEntryOn("2026-05-02");
+        long before = countStoredPhotos("media");
+
+        mockMvc.perform(multipart("/api/head-shape/" + id + "/media")
+                        .file(new MockMultipartFile("files", "clip.mp4", "video/mp4", "fake-video".getBytes())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("HEAD_SHAPE_PHOTOS_ONLY"));
+
+        // A photo alongside the video is refused too, and nothing of it reaches the bucket.
+        mockMvc.perform(multipart("/api/head-shape/" + id + "/media")
+                        .file(new MockMultipartFile("files", "ok.jpg", "image/jpeg", tinyJpeg()))
+                        .file(new MockMultipartFile("files", "clip.mp4", "video/mp4", "fake-video".getBytes())))
+                .andExpect(status().isBadRequest());
+
+        assertThat(countStoredPhotos("media")).isEqualTo(before);
+        mockMvc.perform(get("/api/head-shape/" + id + "/media"))
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    @Test
+    @Order(41)
+    void headShapePhotosAppearInTheGalleryAndLeaveNoObjectsBehind() throws Exception {
+        // Earlier days carry photos of their own, so the gallery count means nothing until
+        // they are gone — and they go through the API, which takes their objects with them.
+        clearHeadShape();
+        String id = headShapeEntryOn("2026-05-03");
+        mockMvc.perform(multipart("/api/head-shape/" + id + "/media")
+                        .file(new MockMultipartFile("files", "top.jpg", "image/jpeg", tinyJpeg())))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/media"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.source == 'HEAD_SHAPE')]",
+                        org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[?(@.source == 'HEAD_SHAPE')].takenOn")
+                        .value(org.hamcrest.Matchers.contains("2026-05-03")));
+
+        // The thumbnail is created on first request, so both objects must go with the entry.
+        mockMvc.perform(get("/api/media/" + firstMediaIdOf(id) + "/content?size=thumb"))
+                .andExpect(status().isOk());
+        long before = countStoredPhotos("media");
+        mockMvc.perform(delete("/api/head-shape/" + id)).andExpect(status().isNoContent());
+        assertThat(countStoredPhotos("media")).isEqualTo(before - 2);
+
+        mockMvc.perform(get("/api/media"))
+                .andExpect(jsonPath("$[?(@.source == 'HEAD_SHAPE')]",
+                        org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    @Test
+    @Order(42)
+    void headShapeRefusesAFutureDate() throws Exception {
+        ensureProfile();
+        String tomorrow = java.time.LocalDate.now(com.bb.progress.common.Sgt.ZONE).plusDays(1).toString();
+        mockMvc.perform(post("/api/head-shape")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recordedOn\":\"" + tomorrow + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("RECORDED_ON_IN_FUTURE"));
+    }
+
+    /** Removes every head shape entry through the API, objects included. */
+    private void clearHeadShape() throws Exception {
+        ensureProfile();
+        MvcResult result = mockMvc.perform(get("/api/head-shape"))
+                .andExpect(status().isOk())
+                .andReturn();
+        java.util.List<String> ids = com.jayway.jsonpath.JsonPath
+                .read(result.getResponse().getContentAsString(), "$[*].id");
+        for (String id : ids) {
+            mockMvc.perform(delete("/api/head-shape/" + id)).andExpect(status().isNoContent());
+        }
+    }
+
+    private String headShapeEntryOn(String date) throws Exception {
+        ensureProfile();
+        MvcResult created = mockMvc.perform(post("/api/head-shape")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recordedOn\":\"" + date + "\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+    }
+
+    private String firstMediaIdOf(String headShapeEntryId) throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/head-shape/" + headShapeEntryId + "/media"))
+                .andExpect(status().isOk())
+                .andReturn();
+        return com.jayway.jsonpath.JsonPath.read(result.getResponse().getContentAsString(), "$[0].id");
+    }
+
+    private static byte[] tinyPng() throws Exception {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(
+                new java.awt.image.BufferedImage(8, 8, java.awt.image.BufferedImage.TYPE_INT_RGB), "png", out);
+        return out.toByteArray();
+    }
 }

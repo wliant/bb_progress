@@ -76,6 +76,17 @@ public class MediaService {
         return repository.findAllByMilestoneIdOrderBySortOrderAsc(milestoneId);
     }
 
+    @Transactional(readOnly = true)
+    public List<Media> forHeadShapeEntry(UUID headShapeEntryId) {
+        return repository.findAllByHeadShapeEntryIdOrderBySortOrderAsc(headShapeEntryId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Media> forHeadShapeEntries(List<UUID> headShapeEntryIds) {
+        return headShapeEntryIds.isEmpty() ? List.of()
+                : repository.findAllByHeadShapeEntryIdInOrderBySortOrderAsc(headShapeEntryIds);
+    }
+
     @Transactional
     public List<MediaView> addToCareLog(UUID careLogId, List<MultipartFile> files) {
         int next = nextSortOrder(repository.findAllByCareLogIdOrderBySortOrderAsc(careLogId));
@@ -96,6 +107,30 @@ public class MediaService {
                     stored.contentType(), next++));
         }
         return views(repository.findAllByMilestoneIdOrderBySortOrderAsc(milestoneId));
+    }
+
+    /**
+     * A head shape entry is a visual record, so it takes photos only — the page's value is a
+     * grid of comparable stills, and a video among them could not be compared.
+     */
+    @Transactional
+    public List<MediaView> addToHeadShapeEntry(UUID headShapeEntryId, List<MultipartFile> files) {
+        // Checked before anything is stored: rejecting a video after uploading it would
+        // leave the bytes in the bucket with no row pointing at them.
+        for (MultipartFile file : files) {
+            if (kindOf(file) != MediaKind.PHOTO) {
+                throw ApiException.badRequest("HEAD_SHAPE_PHOTOS_ONLY",
+                        "Head shape entries take photos only");
+            }
+        }
+        int next = nextSortOrder(
+                repository.findAllByHeadShapeEntryIdOrderBySortOrderAsc(headShapeEntryId));
+        for (MultipartFile file : files) {
+            Stored stored = store(file);
+            repository.save(Media.forHeadShapeEntry(headShapeEntryId, stored.kind(), stored.key(),
+                    stored.contentType(), next++));
+        }
+        return views(repository.findAllByHeadShapeEntryIdOrderBySortOrderAsc(headShapeEntryId));
     }
 
     @Transactional
@@ -138,11 +173,18 @@ public class MediaService {
     private record Stored(MediaKind kind, String key, String contentType) {
     }
 
-    private Stored store(MultipartFile file) {
-        // Recorders report types like "audio/webm;codecs=opus"; the parameters are not part
-        // of the media type we key on.
+    /**
+     * The kind an upload would be stored as. Recorders report types like
+     * "audio/webm;codecs=opus"; the parameters are not part of the media type we key on.
+     */
+    static MediaKind kindOf(MultipartFile file) {
         String contentType = baseContentType(file.getContentType());
-        MediaKind kind = contentType == null ? null : KIND_BY_TYPE.get(contentType);
+        return contentType == null ? null : KIND_BY_TYPE.get(contentType);
+    }
+
+    private Stored store(MultipartFile file) {
+        String contentType = baseContentType(file.getContentType());
+        MediaKind kind = kindOf(file);
         if (kind == null) {
             throw ApiException.badRequest("UNSUPPORTED_MEDIA_TYPE",
                     "Only photos, videos and voice recordings are supported");
