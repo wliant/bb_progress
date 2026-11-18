@@ -10,8 +10,10 @@ export const KIND_ICON: Record<MediaKind, string> = {
 }
 
 /** Everything the browser can play back; the server refuses anything else. */
+export const PHOTO_TYPES = 'image/jpeg,image/png,image/webp'
+
 export const ACCEPTED_TYPES =
-  'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,' +
+  PHOTO_TYPES + ',video/mp4,video/quicktime,video/webm,' +
   'audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/ogg,audio/webm'
 
 export interface PendingMedia {
@@ -27,6 +29,8 @@ interface Props {
   pending?: PendingMedia[]
   onRemovePending?: (index: number) => void
   busy?: boolean
+  /** Photos only: narrows the picker and drops the recorder, for a visual-record owner. */
+  photoOnly?: boolean
 }
 
 /**
@@ -34,7 +38,15 @@ interface Props {
  * remove control, and one button to add more. Photos preview; video and voice show their kind,
  * because the app has no transcoder to pull a frame out of them.
  */
-export function MediaPicker({ media, onAdd, onRemove, pending = [], onRemovePending, busy }: Props) {
+export function MediaPicker({
+  media,
+  onAdd,
+  onRemove,
+  pending = [],
+  onRemovePending,
+  busy,
+  photoOnly,
+}: Props) {
   const { t } = useTranslation()
   const input = useRef<HTMLInputElement>(null)
 
@@ -90,7 +102,7 @@ export function MediaPicker({ media, onAdd, onRemove, pending = [], onRemovePend
         ref={input}
         type="file"
         multiple
-        accept={ACCEPTED_TYPES}
+        accept={photoOnly ? PHOTO_TYPES : ACCEPTED_TYPES}
         className="hidden"
         onChange={onChange}
         data-testid="media-input"
@@ -105,9 +117,11 @@ export function MediaPicker({ media, onAdd, onRemove, pending = [], onRemovePend
           {busy ? t('media.uploading') : t('media.add')}
         </button>
         {/* A voice note can be recorded here rather than picked from a file. */}
-        <VoiceRecorder onRecorded={(file) => onAdd([file])} />
+        {!photoOnly && <VoiceRecorder onRecorded={(file) => onAdd([file])} />}
       </div>
-      <p className="mt-1 text-xs text-slate-400">{t('media.hint')}</p>
+      <p className="mt-1 text-xs text-slate-400">
+        {photoOnly ? t('media.photoHint') : t('media.hint')}
+      </p>
       {pending.length > 0 && (
         <p className="mt-1 text-xs text-slate-400">{t('media.pending', { count: pending.length })}</p>
       )}

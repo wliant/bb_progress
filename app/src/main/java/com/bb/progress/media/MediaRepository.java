@@ -13,4 +13,8 @@ public interface MediaRepository extends JpaRepository<Media, UUID> {
     List<Media> findAllByCareLogIdInOrderBySortOrderAsc(List<UUID> careLogIds);
 
     List<Media> findAllByMilestoneIdInOrderBySortOrderAsc(List<String> milestoneIds);
+
+    List<Media> findAllByHeadShapeEntryIdOrderBySortOrderAsc(UUID headShapeEntryId);
+
+    List<Media> findAllByHeadShapeEntryIdInOrderBySortOrderAsc(List<UUID> headShapeEntryIds);
 }

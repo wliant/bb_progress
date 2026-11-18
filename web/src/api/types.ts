@@ -220,7 +220,7 @@ export interface NewbornAssessment {
 }
 
 
-export type MediaSource = 'PROFILE' | 'MILESTONE' | 'CARE_LOG'
+export type MediaSource = 'PROFILE' | 'MILESTONE' | 'CARE_LOG' | 'HEAD_SHAPE'
 
 export interface GalleryItem {
   id: string
@@ -235,4 +235,17 @@ export interface GalleryItem {
   titleEn: string | null
   titleZh: string | null
   note: string | null
+}
+
+export interface HeadShapeEntry {
+  id: string
+  /** The SGT day, unique across entries. */
+  recordedOn: string
+  note: string | null
+  media: Media[]
+}
+
+export interface HeadShapeEntryInput {
+  recordedOn: string
+  note?: string | null
 }

@@ -8,6 +8,7 @@
     "growth": "Growth",
     "milestones": "Milestones",
     "care": "Care",
+    "headShape": "Head shape",
     "media": "Media"
   },
   "common": {
@@ -60,7 +61,10 @@
     "CARE_AGGREGATE_RANGE_INVALID": "That date range isn't valid",
     "CARE_LOG_NOT_SLEEP": "Only a sleep entry can be ended",
     "SLEEP_ALREADY_ENDED": "This sleep already has an end time",
-    "SLEEP_WINDOW_INVALID": "Sleep must end after it started"
+    "SLEEP_WINDOW_INVALID": "Sleep must end after it started",
+    "HEAD_SHAPE_ENTRY_NOT_FOUND": "That day's head shape record no longer exists",
+    "RECORDED_ON_IN_FUTURE": "The date cannot be in the future",
+    "HEAD_SHAPE_PHOTOS_ONLY": "Head shape records take photos only"
   },
   "profile": {
     "title": "Baby Profile",
@@ -267,6 +271,21 @@
     "recording": "Recording",
     "stopRecording": "Stop",
     "recordUnavailable": "Recording needs HTTPS or localhost",
-    "microphoneDenied": "Couldn't use the microphone — check the browser permission"
+    "microphoneDenied": "Couldn't use the microphone — check the browser permission",
+    "photoHint": "Pick several at once. Photos only; each is compressed to under 1MB.",
+    "headShapePhoto": "Head shape"
+  },
+  "headShape": {
+    "title": "Head shape",
+    "subtitle": "The same photo, day after day — flattening is easier to see side by side than from memory.",
+    "date": "Day",
+    "addPhotos": "Add photos",
+    "empty": "No head photos yet",
+    "emptyHint": "Pick a day and add photos of the head. Take them the same way each time so they compare.",
+    "noPhotos": "No photos on this day",
+    "photoCount": "{{count}} photo(s)",
+    "photoAlt": "Head shape on {{date}}",
+    "notePlaceholder": "e.g. slept on the right all week",
+    "editDay": "Edit {{date}}"
   }
 }

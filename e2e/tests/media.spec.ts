@@ -8,6 +8,9 @@ test.beforeEach(async ({ request }) => {
   for (const log of logs) await request.delete(`/api/care-logs/${log.id}`)
   await request.delete('/api/milestones/2m-social-smiles/achievement')
   await request.delete('/api/milestones/2m-motor-head-up/achievement')
+  // Head shape is a gallery source too, so the empty-gallery assertions need it gone.
+  const headShape = await (await request.get('/api/head-shape')).json()
+  for (const entry of headShape) await request.delete(`/api/head-shape/${entry.id}`)
 })
 
 test('media added to a care entry shows up in the gallery', async ({ page }) => {

@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/growth', key: 'nav.growth', icon: '📈' },
   { to: '/milestones', key: 'nav.milestones', icon: '🏆' },
   { to: '/care', key: 'nav.care', icon: '🍼' },
+  { to: '/head-shape', key: 'nav.headShape', icon: '🧠' },
   { to: '/media', key: 'nav.media', icon: '🎞️' },
   { to: '/profile', key: 'nav.profile', icon: '👶' },
 ] as const

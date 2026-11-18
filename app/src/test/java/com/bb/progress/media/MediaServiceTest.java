@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.mock.web.MockMultipartFile;
 
 class MediaServiceTest {
 
@@ -27,5 +28,30 @@ class MediaServiceTest {
     @Test
     void nullContentTypeStaysNull() {
         assertThat(MediaService.baseContentType(null)).isNull();
+    }
+
+    /**
+     * The head shape upload path decides whether to refuse before anything is stored, so the
+     * kind has to be derivable from the upload alone.
+     */
+    @ParameterizedTest
+    @CsvSource({
+        "image/png, PHOTO",
+        "'image/jpeg; charset=binary', PHOTO",
+        "video/mp4, VIDEO",
+        "'audio/webm;codecs=opus', AUDIO",
+    })
+    void derivesTheKindFromAnUpload(String contentType, MediaKind expected) {
+        assertThat(MediaService.kindOf(upload(contentType))).isEqualTo(expected);
+    }
+
+    @Test
+    void anUnknownTypeHasNoKind() {
+        assertThat(MediaService.kindOf(upload("application/pdf"))).isNull();
+        assertThat(MediaService.kindOf(upload(null))).isNull();
+    }
+
+    private static MockMultipartFile upload(String contentType) {
+        return new MockMultipartFile("files", "f", contentType, "bytes".getBytes());
     }
 }

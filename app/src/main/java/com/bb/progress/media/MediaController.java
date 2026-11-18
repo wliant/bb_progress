@@ -51,6 +51,17 @@ public class MediaController {
         return service.addToMilestone(definitionId, files);
     }
 
+    @GetMapping("/api/head-shape/{id}/media")
+    public List<MediaView> headShapeMedia(@PathVariable UUID id) {
+        return MediaService.views(service.forHeadShapeEntry(id));
+    }
+
+    @PostMapping(path = "/api/head-shape/{id}/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public List<MediaView> addHeadShapeMedia(@PathVariable UUID id,
+            @RequestParam("files") List<MultipartFile> files) {
+        return service.addToHeadShapeEntry(id, files);
+    }
+
     @DeleteMapping("/api/media/{mediaId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID mediaId) {

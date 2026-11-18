@@ -6,6 +6,8 @@ import com.bb.progress.carelog.CareLog;
 import com.bb.progress.carelog.CareLogRepository;
 import com.bb.progress.carelog.CareType;
 import com.bb.progress.common.Sgt;
+import com.bb.progress.headshape.HeadShapeEntry;
+import com.bb.progress.headshape.HeadShapeEntryRepository;
 import com.bb.progress.milestone.MilestoneAchievement;
 import com.bb.progress.milestone.MilestoneAchievementRepository;
 import com.bb.progress.milestone.MilestoneDefinition;
@@ -33,7 +35,8 @@ public class MediaGalleryController {
     public enum MediaSource {
         PROFILE,
         MILESTONE,
-        CARE_LOG
+        CARE_LOG,
+        HEAD_SHAPE
     }
 
     public record GalleryItem(
@@ -57,15 +60,18 @@ public class MediaGalleryController {
     private final MediaRepository media;
     private final MilestoneAchievementRepository achievements;
     private final MilestoneDefinitionRepository definitions;
+    private final HeadShapeEntryRepository headShapeEntries;
 
     public MediaGalleryController(BabyRepository babies, CareLogRepository careLogs,
             MediaRepository media, MilestoneAchievementRepository achievements,
-            MilestoneDefinitionRepository definitions) {
+            MilestoneDefinitionRepository definitions,
+            HeadShapeEntryRepository headShapeEntries) {
         this.babies = babies;
         this.careLogs = careLogs;
         this.media = media;
         this.achievements = achievements;
         this.definitions = definitions;
+        this.headShapeEntries = headShapeEntries;
     }
 
     @GetMapping("/api/media")
@@ -80,6 +86,8 @@ public class MediaGalleryController {
                 .collect(Collectors.toMap(MilestoneAchievement::getMilestoneId, Function.identity()));
         Map<String, MilestoneDefinition> definitionsById = definitions.findAll().stream()
                 .collect(Collectors.toMap(MilestoneDefinition::getId, Function.identity()));
+        Map<java.util.UUID, HeadShapeEntry> headShapeById = headShapeEntries.findAll().stream()
+                .collect(Collectors.toMap(HeadShapeEntry::getId, Function.identity()));
 
         for (Media item : all) {
             String url = "/api/media/" + item.getId() + "/content";
@@ -94,6 +102,14 @@ public class MediaGalleryController {
                 items.add(new GalleryItem("media:" + item.getId(), MediaSource.CARE_LOG,
                         item.getKind(), url, thumbnail, loggedAt.toLocalDate(), loggedAt,
                         log.getType(), null, null, log.getNote()));
+            } else if (item.getHeadShapeEntryId() != null) {
+                HeadShapeEntry entry = headShapeById.get(item.getHeadShapeEntryId());
+                if (entry == null) {
+                    continue;
+                }
+                items.add(new GalleryItem("media:" + item.getId(), MediaSource.HEAD_SHAPE,
+                        item.getKind(), url, thumbnail, entry.getRecordedOn(), null, null, null,
+                        null, entry.getNote()));
             } else {
                 MilestoneAchievement achievement = achievementsById.get(item.getMilestoneId());
                 MilestoneDefinition definition = definitionsById.get(item.getMilestoneId());
